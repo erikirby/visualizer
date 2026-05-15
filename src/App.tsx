@@ -431,7 +431,7 @@ export const App = () => {
               </div>
               <div className="control-group">
                 <label>Amount — {Math.round(particleCount * 100)}%</label>
-                <input type="range" min="0.25" max="2" step="0.25" value={particleCount} onChange={e => setParticleCount(Number(e.target.value))}
+                <input type="range" min="0.25" max="4" step="0.25" value={particleCount} onChange={e => setParticleCount(Number(e.target.value))}
                   style={{ width: '100%', accentColor: 'var(--accent-pink)', cursor: 'pointer' }} />
               </div>
               <div className="toggle-group">
