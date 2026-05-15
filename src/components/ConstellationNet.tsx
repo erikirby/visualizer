@@ -11,6 +11,7 @@ interface ConstellationNetProps {
   // Derived from audioDuration in VisualizerMain — different songs = different layouts.
   seed?: number;
   showNames?: boolean;
+  drawSpeed?: number;  // 0.25–4.0; 1 = default pace
   spectrumType?: "bass" | "wide";
 }
 
@@ -251,7 +252,7 @@ interface ConstellationInstance {
   showName: boolean;
 }
 
-function getSlotInstance(slotIdx: number, frame: number, seed: number): ConstellationInstance {
+function getSlotInstance(slotIdx: number, frame: number, seed: number, drawSpeed = 1): ConstellationInstance {
   // Use a pseudo-random hash for staggering so they don't birth in a linear pattern
   const stagger = Math.floor(h(slotIdx * 1234 + 567, seed) * CYCLE_FRAMES);
   const adjustedFrame = frame + stagger;
@@ -278,7 +279,7 @@ function getSlotInstance(slotIdx: number, frame: number, seed: number): Constell
   // ── Variable Phase Timing ──────────────────────────────────────────────────
   // Randomize durations slightly per slot/cycle so they don't draw in sync
   const varInactive = INACTIVE_FRAMES + (h(slotIdx * 31 + cycleIdx * 7, seed + 3) - 0.5) * 150;
-  const varDraw     = DRAW_FRAMES     + (h(slotIdx * 41 + cycleIdx * 9, seed + 4) - 0.5) * 80;
+  const varDraw     = (DRAW_FRAMES    + (h(slotIdx * 41 + cycleIdx * 9, seed + 4) - 0.5) * 80) / Math.max(0.1, drawSpeed);
 
   let phase: ConstellationInstance["phase"] = "inactive";
   let opacity = 1;
@@ -320,6 +321,7 @@ export const ConstellationNet: React.FC<ConstellationNetProps> = ({
   colorB = "#00B4FF",
   seed   = 0,
   showNames = true,
+  drawSpeed = 1,
   spectrumType = "wide",
 }) => {
   const frame     = useCurrentFrame();
@@ -344,7 +346,7 @@ export const ConstellationNet: React.FC<ConstellationNetProps> = ({
   const labels:       React.ReactNode[] = [];
 
   for (let s = 0; s < NUM_SLOTS; s++) {
-    const inst = getSlotInstance(s, frame, seed);
+    const inst = getSlotInstance(s, frame, seed, drawSpeed);
     if (inst.phase === "dead") continue;
 
     const con = CONSTELLATIONS[inst.conIndex]!;

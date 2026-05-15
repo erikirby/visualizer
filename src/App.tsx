@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Player } from "@remotion/player";
 import { renderMediaOnWeb, canRenderMediaOnWeb } from "@remotion/web-renderer";
-import { Upload, FileAudio, FileImage, FileText, Download, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { Upload, FileAudio, FileImage, FileText, Download, Loader2, ChevronDown, ChevronUp, Zap, Palette, Mic2, SlidersHorizontal } from "lucide-react";
 import { RemotionRoot } from "./Root";
 import { VisualizerMain, VisualizerProps, VisualizerLayout } from "./VisualizerMain";
 import { Main } from "./Main";
@@ -177,7 +177,7 @@ export const App = () => {
   const [trackName, setTrackName] = useState<string>("");
   const [reverseTitles, setReverseTitles] = useState<boolean>(false);
   const [fontFamily, setFontFamily] = useState<string>("Inter");
-  const [showLyrics, setShowLyrics] = useState<boolean>(true);
+  const [showLyrics, setShowLyrics] = useState<boolean>(false);
   const [pulseMovement, setPulseMovement] = useState<boolean>(true);
   const [pulseFlash, setPulseFlash] = useState<boolean>(true);
   const [particlePulse, setParticlePulse] = useState<boolean>(true);
@@ -185,16 +185,18 @@ export const App = () => {
   const [overlayType, setOverlayType] = useState<any>("none");
   const [overlayOpacity, setOverlayOpacity] = useState<number>(0.5);
   const [spectrumType, setSpectrumType] = useState<"bass" | "wide">("wide");
+  const [constellationDrawSpeed, setConstellationDrawSpeed] = useState<number>(1);
+  const [fineTuneOpen, setFineTuneOpen] = useState<boolean>(false);
   
   const [audioDuration, setAudioDuration] = useState<number>(30);
   const audioDurationRef = useRef<number>(30);
   useEffect(() => { audioDurationRef.current = audioDuration; }, [audioDuration]);
 
   const presets = [
-    { id: "midnight", name: "Neon Constellation", config: { themeId: 1, layout: "constellation", showParticles: true, particleDirection: "in", particleSpeed: 0.18, particleCount: 1.26, particlePulse: false, overlayType: "light-leak", overlayOpacity: 0.4 } },
-    { id: "electric", name: "Acid Wave", config: { themeId: 5, layout: "solidwave", showParticles: true, particleDirection: "up", overlayType: "scanlines", overlayOpacity: 0.3 } },
-    { id: "minimal", name: "Ice Cold", config: { themeId: 3, layout: "bottom", showParticles: false, overlayType: "none" } },
-    { id: "iridescent", name: "Iridescent Orbit", config: { themeId: 9, layout: "echo", showParticles: true, particleDirection: "out", overlayType: "light-leak", overlayOpacity: 0.4 } },
+    { id: "midnight",   name: "Neon Constellation", desc: "Cosmic, electric",  colorA: "#FF2D9B", colorB: "#00B4FF", config: { themeId: 1, layout: "constellation", showParticles: true,  particleDirection: "in",  particleSpeed: 0.18, particleCount: 1.26, particlePulse: false, overlayType: "light-leak", overlayOpacity: 0.4 } },
+    { id: "electric",   name: "Acid Wave",          desc: "Punchy, toxic",     colorA: "#00FF88", colorB: "#FF2D9B", config: { themeId: 5, layout: "solidwave",     showParticles: true,  particleDirection: "up",  overlayType: "scanlines",   overlayOpacity: 0.3 } },
+    { id: "minimal",    name: "Ice Cold",            desc: "Minimal, clean",    colorA: "#2DFFEE", colorB: "#2D6BFF", config: { themeId: 3, layout: "bottom",        showParticles: false, overlayType: "none" } },
+    { id: "iridescent", name: "Iridescent Orbit",   desc: "Fluid, dreamy",     colorA: "#FF6B2D", colorB: "#9B2DFF", config: { themeId: 9, layout: "echo",          showParticles: true,  particleDirection: "out", overlayType: "light-leak", overlayOpacity: 0.4 } },
   ];
 
   const applyPreset = (preset: any) => {
@@ -399,6 +401,7 @@ export const App = () => {
     pulseMovement,
     pulseFlash,
     showConstellationNames,
+    constellationDrawSpeed,
     showVisualizer: true,
     spectrumType
   };
@@ -420,40 +423,54 @@ export const App = () => {
           </div>
           <p>Visualizer & Lyric Video Creator</p>
           <p style={{ fontSize: 11, color: "var(--text-secondary)", opacity: 0.7, marginTop: 4 }}>
-            ⚠ Export requires <strong>Chrome or Edge</strong> — Safari & Firefox not supported
+            ⚠ Export requires <strong>Chrome or Edge</strong>
           </p>
         </div>
 
         <div className="sidebar-content">
-          <div className="section-title" style={{ marginTop: 0 }}>Quick Start</div>
-          <div className="presets-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
-            {presets.map(p => (
-              <button key={p.id} className="preset-button" onClick={() => applyPreset(p)}
-                style={{ padding: '10px', fontSize: '11px', fontWeight: '600', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', cursor: 'pointer' }}>
-                {p.name}
-              </button>
-            ))}
-          </div>
 
-          <div className="section-title">1. Media Assets</div>
+          {/* ── 1. Media Assets ─────────────────────────────────── */}
+          <div className="section-title" style={{ marginTop: 0 }}>
+            <Upload size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5, marginBottom: 1 }} />
+            1. Media Assets
+          </div>
           <div className="control-group">
             <label>Audio File</label>
             <label className="file-upload">
               <FileAudio className="file-upload-icon" size={20} />
-              <span className="file-upload-text">{audioUrl ? "Audio Loaded" : "Upload MP3/WAV"}</span>
+              <span className="file-upload-text">{audioUrl ? "✓ Audio Loaded" : "Upload MP3/WAV"}</span>
               <input type="file" accept="audio/*" onChange={handleAudioUpload} />
             </label>
           </div>
           <div className="control-group">
-            <label>Background (image or video)</label>
+            <label>Background</label>
             <label className="file-upload">
               <FileImage className="file-upload-icon" size={20} />
-              <span className="file-upload-text">{backgroundName || "Upload Image/Video"}</span>
+              <span className="file-upload-text">{backgroundName ? `✓ ${backgroundName}` : "Upload Image or Video"}</span>
               <input type="file" accept="image/*,video/*" onChange={handleBackgroundUpload} />
             </label>
           </div>
 
-          <div className="section-title">2. Visual Design</div>
+          {/* ── Quick Start ──────────────────────────────────────── */}
+          <div className="section-title">
+            <Zap size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5, marginBottom: 1 }} />
+            Quick Start
+          </div>
+          <div className="presets-grid">
+            {presets.map(p => (
+              <button key={p.id} className="preset-button" onClick={() => applyPreset(p)}>
+                <span className="preset-swatch" style={{ background: `linear-gradient(135deg, ${p.colorA}, ${p.colorB})` }} />
+                <span className="preset-name">{p.name}</span>
+                <span className="preset-desc">{p.desc}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* ── 2. Visual Design ─────────────────────────────────── */}
+          <div className="section-title">
+            <Palette size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5, marginBottom: 1 }} />
+            2. Visual Design
+          </div>
           <div className="control-group">
             <label>Layout</label>
             <select className="select-input" value={layout} onChange={e => setLayout(e.target.value as VisualizerLayout)}>
@@ -467,52 +484,8 @@ export const App = () => {
             </select>
           </div>
 
-          <div className="control-group">
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              Spectrum
-              <div className="tooltip-container">
-                <span className="tooltip-icon">?</span>
-                <div className="tooltip-content">
-                  <strong>BASS:</strong> Focuses on low-end energy (0–3kHz). Ideal for kick-heavy tracks.
-                  <br/><br/>
-                  <strong>WIDE:</strong> Maps the full frequency range (0–9kHz) for a more detailed, active look.
-                </div>
-              </div>
-            </label>
-            <div className="segmented-control">
-              <button 
-                className={spectrumType === "bass" ? "active" : ""}
-                onClick={() => setSpectrumType("bass")}
-              >BASS</button>
-              <button 
-                className={spectrumType === "wide" ? "active" : ""}
-                onClick={() => setSpectrumType("wide")}
-              >WIDE</button>
-            </div>
-          </div>
-
-          {layout === "constellation" && (
-            <div className="toggle-group">
-              <label>Show Star Names</label>
-              <label className="switch">
-                <input type="checkbox" checked={showConstellationNames} onChange={e => setShowConstellationNames(e.target.checked)} />
-                <span className="slider"></span>
-              </label>
-            </div>
-          )}
-
-          {(layout === "bottom" || layout === "audiogram" || layout === "solidwave" || layout === "echo" || layout === "echo-solid") && (
-            <div className="toggle-group" style={{ marginBottom: '8px' }}>
-              <label>Mirror Reflection</label>
-              <label className="switch">
-                <input type="checkbox" checked={reflection} onChange={e => setReflection(e.target.checked)} />
-                <span className="slider"></span>
-              </label>
-            </div>
-          )}
-
           <div className="toggle-group">
-            <label>Show Particles</label>
+            <label>Particles</label>
             <label className="switch">
               <input type="checkbox" checked={showParticles} onChange={e => handleToggleParticles(e.target.checked)} />
               <span className="slider"></span>
@@ -520,8 +493,8 @@ export const App = () => {
           </div>
 
           {showParticles && (
-            <div className="advanced-panel" style={{ padding: '12px', background: 'rgba(0,0,0,0.15)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-               <div className="control-group">
+            <div className="advanced-panel">
+              <div className="control-group">
                 <label>Direction</label>
                 <select className="select-input" value={particleDirection} onChange={e => setParticleDirection(e.target.value)}>
                   <option value="auto">Auto</option>
@@ -532,14 +505,12 @@ export const App = () => {
                 </select>
               </div>
               <div className="control-group">
-                <label>Speed — {parseFloat((particleSpeed / 0.3).toFixed(1))}x</label>
-                <input type="range" min="0.05" max="0.55" step="0.025" value={particleSpeed} onChange={e => setParticleSpeed(Number(e.target.value))}
-                  style={{ width: '100%', accentColor: 'var(--accent-pink)', cursor: 'pointer' }} />
+                <label>Speed <span className="label-value">{parseFloat((particleSpeed / 0.3).toFixed(1))}x</span></label>
+                <input type="range" className="range-input" min="0.05" max="0.55" step="0.025" value={particleSpeed} onChange={e => setParticleSpeed(Number(e.target.value))} />
               </div>
               <div className="control-group">
-                <label>Amount — {Math.round(particleCount / 2.0 * 100)}%</label>
-                <input type="range" min="0.25" max="4" step="0.25" value={particleCount} onChange={e => setParticleCount(Number(e.target.value))}
-                  style={{ width: '100%', accentColor: 'var(--accent-pink)', cursor: 'pointer' }} />
+                <label>Amount <span className="label-value">{Math.round(particleCount / 2.0 * 100)}%</span></label>
+                <input type="range" className="range-input" min="0.25" max="4" step="0.25" value={particleCount} onChange={e => setParticleCount(Number(e.target.value))} />
               </div>
               <div className="toggle-group">
                 <label>Audio Reactive</label>
@@ -551,23 +522,99 @@ export const App = () => {
             </div>
           )}
 
-          <div className="toggle-group">
-            <label>Movement Pulse</label>
-            <label className="switch">
-              <input type="checkbox" checked={pulseMovement} onChange={e => setPulseMovement(e.target.checked)} />
-              <span className="slider"></span>
-            </label>
+          <div className="control-group">
+            <label>Texture</label>
+            <select className="select-input" value={overlayType} onChange={e => setOverlayType(e.target.value)}>
+              <option value="none">None</option>
+              <option value="scanlines">Scan Lines</option>
+              <option value="light-leak">Light Leak</option>
+            </select>
           </div>
 
-          <div className="toggle-group">
-            <label>Flash Pulse</label>
-            <label className="switch">
-              <input type="checkbox" checked={pulseFlash} onChange={e => setPulseFlash(e.target.checked)} />
-              <span className="slider"></span>
-            </label>
+          {overlayType === "light-leak" && (
+            <div className="control-group">
+              <label>Intensity <span className="label-value">{Math.round(overlayOpacity * 100)}%</span></label>
+              <input type="range" className="range-input" min={0} max={1} step={0.01} value={overlayOpacity} onChange={e => setOverlayOpacity(parseFloat(e.target.value))} />
+            </div>
+          )}
+
+          {/* Fine-tune collapsible */}
+          <button className={`fine-tune-toggle${fineTuneOpen ? " open" : ""}`} onClick={() => setFineTuneOpen(!fineTuneOpen)}>
+            <SlidersHorizontal size={12} />
+            Fine-tune
+            {fineTuneOpen ? <ChevronUp size={12} style={{ marginLeft: "auto" }} /> : <ChevronDown size={12} style={{ marginLeft: "auto" }} />}
+          </button>
+
+          {fineTuneOpen && (
+            <div className="advanced-panel">
+              <div className="control-group">
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  Spectrum
+                  <div className="tooltip-container">
+                    <span className="tooltip-icon">?</span>
+                    <div className="tooltip-content">
+                      <strong>BASS:</strong> Focuses on low-end energy (0–3kHz). Ideal for kick-heavy tracks.
+                      <br /><br />
+                      <strong>WIDE:</strong> Maps the full frequency range (0–9kHz) for a more detailed, active look.
+                    </div>
+                  </div>
+                </label>
+                <div className="segmented-control">
+                  <button className={spectrumType === "bass" ? "active" : ""} onClick={() => setSpectrumType("bass")}>BASS</button>
+                  <button className={spectrumType === "wide" ? "active" : ""} onClick={() => setSpectrumType("wide")}>WIDE</button>
+                </div>
+              </div>
+
+              {(layout === "bottom" || layout === "audiogram" || layout === "solidwave" || layout === "echo" || layout === "echo-solid") && (
+                <div className="toggle-group">
+                  <label>Mirror Reflection</label>
+                  <label className="switch">
+                    <input type="checkbox" checked={reflection} onChange={e => setReflection(e.target.checked)} />
+                    <span className="slider"></span>
+                  </label>
+                </div>
+              )}
+
+              <div className="toggle-group">
+                <label>Beat Zoom</label>
+                <label className="switch">
+                  <input type="checkbox" checked={pulseMovement} onChange={e => setPulseMovement(e.target.checked)} />
+                  <span className="slider"></span>
+                </label>
+              </div>
+
+              <div className="toggle-group">
+                <label>Beat Flash</label>
+                <label className="switch">
+                  <input type="checkbox" checked={pulseFlash} onChange={e => setPulseFlash(e.target.checked)} />
+                  <span className="slider"></span>
+                </label>
+              </div>
+
+              {layout === "constellation" && (
+                <>
+                  <div className="toggle-group">
+                    <label>Star Names</label>
+                    <label className="switch">
+                      <input type="checkbox" checked={showConstellationNames} onChange={e => setShowConstellationNames(e.target.checked)} />
+                      <span className="slider"></span>
+                    </label>
+                  </div>
+                  <div className="control-group">
+                    <label>Draw Speed <span className="label-value">{constellationDrawSpeed.toFixed(1)}x</span></label>
+                    <input type="range" className="range-input" min={0.25} max={4} step={0.25} value={constellationDrawSpeed} onChange={e => setConstellationDrawSpeed(parseFloat(e.target.value))} />
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* ── 3. Lyrics & Titles ───────────────────────────────── */}
+          <div className="section-title">
+            <Mic2 size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5, marginBottom: 1 }} />
+            3. Lyrics &amp; Titles
           </div>
 
-          <div className="section-title">3. Content & Overlay</div>
           <div className="toggle-group">
             <label>Display Titles</label>
             <label className="switch">
@@ -577,7 +624,7 @@ export const App = () => {
           </div>
 
           {showTitles && (
-            <div className="advanced-panel" style={{ padding: '12px', background: 'rgba(0,0,0,0.15)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="advanced-panel">
               <div className="control-group">
                 <label>Artist</label>
                 <input className="text-input" value={artistName} onChange={e => setArtistName(e.target.value)} />
@@ -592,11 +639,21 @@ export const App = () => {
                   {fontFamilies.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
               </div>
+              <div className="toggle-group">
+                <label>Swap Name Order</label>
+                <label className="switch">
+                  <input type="checkbox" checked={reverseTitles} onChange={e => setReverseTitles(e.target.checked)} />
+                  <span className="slider"></span>
+                </label>
+              </div>
             </div>
           )}
 
           <div className="toggle-group">
-            <label>Show Lyrics</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              Lyrics
+              <span className="beta-badge">BETA</span>
+            </label>
             <label className="switch">
               <input type="checkbox" checked={showLyrics} onChange={e => setShowLyrics(e.target.checked)} />
               <span className="slider"></span>
@@ -604,74 +661,44 @@ export const App = () => {
           </div>
 
           {showLyrics && (
-             <div className="advanced-panel" style={{ padding: '12px', background: 'rgba(0,0,0,0.15)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-               <textarea className="text-input" rows={3} placeholder="Paste lyrics here (one line per lyric)..." value={rawLyrics}
-                 onChange={e => setRawLyrics(e.target.value)}
-                 onBlur={e => {
-                   const cleaned = e.target.value
-                     .replace(/\[.*?\]/g, "")
-                     .split('\n')
-                     .map(l => l.replace(/\s+/g, ' ').trim())
-                     .filter(l => l.length > 0)
-                     .join('\n');
-                   setRawLyrics(cleaned);
-                 }}
-                 style={{fontSize: '12px'}} />
-               <button className="primary-button" onClick={handleSync} disabled={isSyncing || !rawLyrics}
-                 style={{padding: '8px', fontSize: '12px', background: 'var(--accent-blue)', lineHeight: 1.4}}>
-                 {isSyncing ? (
-                   <span style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-                     <span>Syncing...</span>
-                     <span style={{fontSize: '10px', opacity: 0.8}}>may take a few min</span>
-                   </span>
-                 ) : syncStatus === "SYNCED" ? "Synced ✓" : "Sync Lyrics"}
-               </button>
-               {syncStatus === "SYNCED" && !isSyncing && (
-                 <p style={{color: 'var(--text-secondary)', fontSize: '11px', textAlign: 'center', margin: 0, lineHeight: 1.4}}>
-                   Edit lyrics above and hit Sync again to update
-                 </p>
-               )}
-               <p style={{color: 'var(--text-secondary)', fontSize: '10px', textAlign: 'center', margin: 0, lineHeight: 1.4, opacity: 0.6}}>
-                 ⚠ Beta — AI sync accuracy varies by song. Results may be imperfect.
-               </p>
-             </div>
-          )}
-
-          <div className="control-group">
-            <label>Texture</label>
-            <select className="select-input" value={overlayType} onChange={e => setOverlayType(e.target.value)}>
-              <option value="none">None</option>
-              <option value="scanlines">Scan Lines</option>
-              <option value="light-leak">Light Leak</option>
-            </select>
-          </div>
-
-          {overlayType === "light-leak" && (
-            <div className="control-group">
-              <label>Intensity <span style={{ opacity: 0.6 }}>{Math.round(overlayOpacity * 100)}%</span></label>
-              <input
-                type="range" min={0} max={1} step={0.01}
-                value={overlayOpacity}
-                onChange={e => setOverlayOpacity(parseFloat(e.target.value))}
-                className="range-input"
+            <div className="advanced-panel">
+              <textarea className="text-input" rows={3}
+                placeholder="Paste lyrics here (one line per lyric line)..."
+                value={rawLyrics}
+                onChange={e => setRawLyrics(e.target.value)}
+                onBlur={e => {
+                  const cleaned = e.target.value
+                    .replace(/\[.*?\]/g, "")
+                    .split('\n')
+                    .map(l => l.replace(/\s+/g, ' ').trim())
+                    .filter(l => l.length > 0)
+                    .join('\n');
+                  setRawLyrics(cleaned);
+                }}
+                style={{ fontSize: '12px' }}
               />
+              <button className="primary-button" onClick={handleSync} disabled={isSyncing || !rawLyrics}
+                style={{ padding: '8px', fontSize: '12px', background: 'var(--accent-blue)', lineHeight: 1.4 }}>
+                {isSyncing ? (
+                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <span>Syncing...</span>
+                    <span style={{ fontSize: '10px', opacity: 0.8 }}>{syncStatus || "may take a few min"}</span>
+                  </span>
+                ) : syncStatus === "SYNCED" ? "Synced ✓" : "Sync Lyrics"}
+              </button>
+              {syncStatus === "SYNCED" && !isSyncing && (
+                <p style={{ color: 'var(--text-secondary)', fontSize: '11px', textAlign: 'center', margin: 0, lineHeight: 1.4 }}>
+                  Edit lyrics above and hit Sync again to update
+                </p>
+              )}
+              <p style={{ color: 'rgba(255,200,80,0.65)', fontSize: '10px', textAlign: 'center', margin: 0, lineHeight: 1.5 }}>
+                AI accuracy varies — timing may be imperfect. Re-sync as needed.
+              </p>
             </div>
           )}
         </div>
 
         <div className="sidebar-footer">
-          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", lineHeight: 1.7, marginBottom: 10, padding: "10px 12px", background: "rgba(255,180,0,0.06)", border: "1px solid rgba(255,180,0,0.15)", borderRadius: 10 }}>
-            ⚠ <strong style={{ color: "rgba(255,200,80,0.9)" }}>One-time setup required for best exports.</strong><br />
-            In Chrome, paste this in your address bar:{" "}
-            <span style={{ fontFamily: "monospace", background: "rgba(255,255,255,0.08)", padding: "1px 5px", borderRadius: 4, userSelect: "all", cursor: "text", color: "rgba(255,255,255,0.75)" }}>
-              chrome://flags/#canvas-draw-element
-            </span>
-            <br />
-            Set <strong style={{ color: "rgba(255,200,80,0.9)" }}>HTML-in-Canvas</strong> to <strong style={{ color: "rgba(255,200,80,0.9)" }}>Enabled</strong> → relaunch Chrome. Edge users: same steps, use{" "}
-            <span style={{ fontFamily: "monospace", background: "rgba(255,255,255,0.08)", padding: "1px 5px", borderRadius: 4, userSelect: "all", cursor: "text", color: "rgba(255,255,255,0.75)" }}>
-              edge://flags/#canvas-draw-element
-            </span>
-          </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <button
               className="primary-button"
@@ -688,7 +715,7 @@ export const App = () => {
               title="Export first 5 seconds only — great for quickly checking your settings"
               style={{ fontSize: 13, opacity: 0.6, padding: "10px" }}
             >
-              5 Second Test Video
+              5s Test Export
             </button>
           </div>
         </div>

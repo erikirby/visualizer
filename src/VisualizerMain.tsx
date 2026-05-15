@@ -74,6 +74,7 @@ export type VisualizerProps = {
   pulseFlash?: boolean;
   particlePulse?: boolean;
   showConstellationNames?: boolean;
+  constellationDrawSpeed?: number;
   isExporting?: boolean;
   spectrumType?: "bass" | "wide";
 } & Record<string, unknown>;
@@ -113,6 +114,7 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
   pulseFlash = true,
   particlePulse = true,
   showConstellationNames = true,
+  constellationDrawSpeed = 1,
   isExporting = false,
   spectrumType = "wide",
 }) => {
@@ -199,7 +201,7 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
       {showVisualizer && layout === "echo"          && <EchoPulse audioSrc={audioSrc as string} layers={layers} colorA={colorA} colorB={colorB} reflection={effectiveReflection} spectrumType={spectrumType} />}
       {showVisualizer && layout === "echo-solid"    && <EchoPulse audioSrc={audioSrc as string} variant="solid" layers={layers} colorA={colorA} colorB={colorB} reflection={effectiveReflection} spectrumType={spectrumType} />}
       {showVisualizer && layout === "dna"           && <DNAHelix audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} />}
-      {showVisualizer && layout === "constellation" && <ConstellationNet audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} seed={Math.floor((audioDuration as number) * 100)} showNames={showConstellationNames} />}
+      {showVisualizer && layout === "constellation" && <ConstellationNet audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} seed={Math.floor((audioDuration as number) * 100)} showNames={showConstellationNames} drawSpeed={constellationDrawSpeed} spectrumType={spectrumType} />}
 
       {showParticles && (
         <Particles audioSrc={audioSrc as string} direction={particleDir} reactiveSpeed={particlePulse} speedMultiplier={particleSpeed} countMultiplier={particleCount} colorA={colorA} colorB={colorB} />
