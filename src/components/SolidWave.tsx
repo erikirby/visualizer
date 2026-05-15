@@ -141,7 +141,13 @@ export const SolidWave: React.FC<SolidWaveProps> = ({
     const normed      = (raw / peak) * 0.55;
     const rumbleNoise = rumble ? Math.sin(frame * 13.7 + i * 3.9) * 0.03 : 0;
     const ambient     = 0.012 + 0.01 * Math.sin(t * 2.8 + i * 0.35);
-    return Math.max(ambient, Math.min(1, normed + rumbleNoise));
+    // Soft saturation above 0.7 — wave curves up but never hits a hard ceiling
+    const rawVal = normed + rumbleNoise;
+    const softVal = rawVal <= 0.7 ? rawVal : 0.7 + (rawVal - 0.7) * 0.22;
+    // Edge taper — wave fades to 0 at left/right margins instead of a hard vertical cut
+    const edgeT    = i / (NUM_BARS - 1);
+    const edgeFade = Math.min(1, edgeT * 9, (1 - edgeT) * 9);
+    return Math.max(ambient * edgeFade, softVal * edgeFade);
   });
 
   const bassEnergy = visualization.slice(0, 4).reduce((a: number, b: number) => a + b, 0) / 4;
