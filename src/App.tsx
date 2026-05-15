@@ -149,8 +149,8 @@ export const App = () => {
   const [particleCount, setParticleCount] = useState<number>(1.0);
   const [reflection, setReflection] = useState<boolean>(true);
   const [showTitles, setShowTitles] = useState<boolean>(true);
-  const [artistName, setArtistName] = useState<string>("AELOW");
-  const [trackName, setTrackName] = useState<string>("MY TRACK");
+  const [artistName, setArtistName] = useState<string>("ARTIST NAME");
+  const [trackName, setTrackName] = useState<string>("TRACK TITLE");
   const [reverseTitles, setReverseTitles] = useState<boolean>(false);
   const [fontFamily, setFontFamily] = useState<string>("Inter");
   const [showLyrics, setShowLyrics] = useState<boolean>(true);
