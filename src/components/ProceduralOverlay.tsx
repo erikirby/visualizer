@@ -56,12 +56,12 @@ export const ProceduralOverlay: React.FC<ProceduralOverlayProps> = ({
     // Blob A: upper-left quadrant — amplitude capped so gradient fades to ~0 before frame edge
     const cx  = 34 + 12 * Math.sin(t * 0.17);           // range 22–46
     const cy  = 38 + 13 * Math.cos(t * 0.11 + 1.2);     // range 25–51
-    const r   = 58 +  7 * Math.sin(t * 0.14);            // range 51–65
+    const r   = 74 +  8 * Math.sin(t * 0.14);            // range 66–82
 
     // Blob B: lower-right quadrant, π phase-shifted so it always opposes A
     const cx2 = 66 + 12 * Math.sin(t * 0.13 + Math.PI); // range 54–78
     const cy2 = 62 + 14 * Math.cos(t * 0.09 + Math.PI + 0.8); // range 48–76
-    const r2  = 54 +  7 * Math.cos(t * 0.16 + 0.5);     // range 47–61
+    const r2  = 70 +  8 * Math.cos(t * 0.16 + 0.5);     // range 62–78
 
     const op = opacity ?? 0.48;
 
