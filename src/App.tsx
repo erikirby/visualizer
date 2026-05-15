@@ -715,7 +715,7 @@ export const App = () => {
               </div>
             ))}
             <p style={{ fontSize: 12, color: "var(--text-secondary)", borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: 16, lineHeight: 1.6, marginTop: 4 }}>
-              ✦ <strong style={{ color: "var(--text-primary)" }}>Completely free, always.</strong> Kirbai Vision renders entirely inside your browser using your own device — no cloud, no servers, no fees. Because your computer is doing all the work, export can take a few minutes. Longer songs take longer. Use the 5s Test button to check your settings quickly before doing a full render.
+              ✦ <strong style={{ color: "var(--text-primary)" }}>Tip:</strong> If you're exporting with a static image background, enabling HTML-in-Canvas (see the setup note above) can improve export quality slightly. This setting has no effect on video background exports.
             </p>
           </div>
         </div>
