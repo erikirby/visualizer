@@ -40,8 +40,12 @@ const SeekableVideo: React.FC<{ src: string; frameTime: number }> = ({ src, fram
     const video = videoRef.current;
     if (!video) return;
     // Only seek if we are meaningfully out of sync to avoid stuttering
-    if (Math.abs(video.currentTime - frameTime) > 0.05) {
-      video.currentTime = frameTime;
+    if (isFinite(frameTime) && Math.abs(video.currentTime - frameTime) > 0.05) {
+      try {
+        video.currentTime = frameTime;
+      } catch (e) {
+        console.error("SeekableVideo error:", e);
+      }
     }
   }, [frameTime, src]);
 
@@ -101,11 +105,18 @@ const CanvasVideoRenderer: React.FC<{ src: string, frameTime: number }> = ({ src
     };
 
     // If we're already at the correct time (or close enough), just draw immediately
-    if (Math.abs(v.currentTime - frameTime) < 0.01 && v.readyState >= 2) {
+    if (isFinite(frameTime) && Math.abs(v.currentTime - frameTime) < 0.01 && v.readyState >= 2) {
       drawFrame();
-    } else {
+    } else if (isFinite(frameTime)) {
       v.addEventListener('seeked', onSeeked, { once: true });
-      v.currentTime = frameTime;
+      try {
+        v.currentTime = frameTime;
+      } catch (e) {
+        console.error("CanvasVideoRenderer error:", e);
+        drawFrame(); // fallback
+      }
+    } else {
+      drawFrame();
     }
 
     return () => {
@@ -160,8 +171,11 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
     if (!isVideo) return null;
 
     if (isBlob) {
-      const loopFrames = bgVideoDurationInFrames ?? totalFrames;
-      const frameTime  = (frame % loopFrames) / fps;
+      const validDuration = (bgVideoDurationInFrames && bgVideoDurationInFrames > 0 && isFinite(bgVideoDurationInFrames)) 
+        ? bgVideoDurationInFrames 
+        : totalFrames;
+      let frameTime  = (frame % validDuration) / fps;
+      if (isNaN(frameTime) || !isFinite(frameTime)) frameTime = 0;
       
       return isExporting ? (
         <CanvasVideoRenderer src={src} frameTime={frameTime} />
