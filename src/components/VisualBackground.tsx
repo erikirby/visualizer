@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import {
   AbsoluteFill,
   Img,
@@ -8,8 +8,9 @@ import {
   staticFile,
   useCurrentFrame,
   useVideoConfig,
+  delayRender,
+  continueRender,
 } from "remotion";
-import { Video } from "@remotion/media";
 
 interface VisualBackgroundProps {
   bassScale?: number;
@@ -29,8 +30,6 @@ const VIDEO_FILL_STYLE: React.CSSProperties = {
   objectFit: "cover",
   objectPosition: "center center",
   objectPosition: "center center",
-};
-
 // --- PREVIEW RENDERER ---
 // Fast, simple HTML video playback synced to the frame. Works perfectly in the 
 // browser Player but fails in renderMediaOnWeb because of canvas taint/capture issues.
@@ -44,7 +43,7 @@ const SeekableVideo: React.FC<{ src: string; frameTime: number }> = ({ src, fram
     if (Math.abs(video.currentTime - frameTime) > 0.05) {
       video.currentTime = frameTime;
     }
-  }, [frameTime]);
+  }, [frameTime, src]);
 
   return (
     <video
@@ -52,9 +51,84 @@ const SeekableVideo: React.FC<{ src: string; frameTime: number }> = ({ src, fram
       src={src}
       muted
       playsInline
+      preload="auto"
       style={{ ...VIDEO_FILL_STYLE, position: "absolute", inset: 0 }}
     />
   );
+};
+
+// --- EXPORT RENDERER ---
+// Bulletproof DOM-to-Canvas renderer for export. It draws the video onto a <canvas>.
+// This bypasses html2canvas's inability to capture local <video> tags.
+// Creates a delayRender lock *during the render phase* to fix the timing bug.
+const CanvasVideoRenderer: React.FC<{ src: string, frameTime: number }> = ({ src, frameTime }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Create a new handle for every distinct frameTime during the render phase
+  const handleRef = useRef<number | null>(null);
+  const lastFrameTimeRef = useRef<number | null>(null);
+
+  if (lastFrameTimeRef.current !== frameTime) {
+    handleRef.current = delayRender("canvas-video-" + frameTime);
+    lastFrameTimeRef.current = frameTime;
+  }
+
+  useEffect(() => {
+    const v = videoRef.current;
+    const handle = handleRef.current;
+    if (!v || handle === null) return;
+
+    let isCancelled = false;
+
+    const drawFrame = () => {
+      if (isCancelled) return;
+      const canvas = canvasRef.current;
+      if (canvas && v.videoWidth) {
+        canvas.width = v.videoWidth;
+        canvas.height = v.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(v, 0, 0, canvas.width, canvas.height);
+      }
+      continueRender(handle);
+    };
+
+    const onSeeked = () => {
+      // requestVideoFrameCallback does NOT fire reliably during frame-by-frame seeking,
+      // which causes Remotion to timeout and capture static frames.
+      // Instead, we wait a tiny bit to ensure the browser has decoded the frame, then draw.
+      setTimeout(drawFrame, 15);
+    };
+
+    // If we're already at the correct time (or close enough), just draw immediately
+    if (Math.abs(v.currentTime - frameTime) < 0.01 && v.readyState >= 2) {
+      drawFrame();
+    } else {
+      v.addEventListener('seeked', onSeeked, { once: true });
+      v.currentTime = frameTime;
+    }
+
+    return () => {
+      isCancelled = true;
+      v.removeEventListener('seeked', onSeeked);
+    };
+  }, [frameTime]);
+
+  return (
+    <>
+      <video
+        ref={videoRef}
+        src={src}
+        muted
+        playsInline
+        preload="auto"
+        style={{ position: "absolute", opacity: 0.01, width: "100%", height: "100%", pointerEvents: "none", zIndex: -1 }}
+      />
+      <canvas ref={canvasRef} style={{ ...VIDEO_FILL_STYLE, position: "absolute", inset: 0 }} />
+    </>
+  );
+};
+
 };
 
 export const VisualBackground: React.FC<VisualBackgroundProps> = ({
@@ -64,6 +138,7 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
   bgLoopType,
   bgReversedSrc,
   bgVideoDurationInFrames,
+  isExporting = false,
 }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames: totalFrames } = useVideoConfig();
@@ -71,7 +146,6 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
   const src     = backgroundSrc ?? staticFile("background.png");
   const isVideo = bgIsVideo === true || bgLoopType !== undefined || VIDEO_EXT_RE.test(src);
   const isBlob = src.startsWith("blob:");
-  const isProxy = src.startsWith("/video-proxy/");
 
   const t = frame / fps;
 
@@ -85,23 +159,15 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
   const buildVideoNode = (): React.ReactNode => {
     if (!isVideo) return null;
 
-    // EXPORT RENDERER: Uses WebCodecs backed by the IndexedDB SW
-    if (isProxy) {
-      if (bgVideoDurationInFrames) {
-        return (
-          <Loop durationInFrames={bgVideoDurationInFrames}>
-            <Video src={src} muted style={VIDEO_FILL_STYLE} />
-          </Loop>
-        );
-      }
-      return <Video src={src} muted style={VIDEO_FILL_STYLE} />;
-    }
-
-    // PREVIEW RENDERER: Uses simple HTML5 video for rapid scrubbing
     if (isBlob) {
       const loopFrames = bgVideoDurationInFrames ?? totalFrames;
       const frameTime  = (frame % loopFrames) / fps;
-      return <SeekableVideo src={src} frameTime={frameTime} />;
+      
+      return isExporting ? (
+        <CanvasVideoRenderer src={src} frameTime={frameTime} />
+      ) : (
+        <SeekableVideo src={src} frameTime={frameTime} />
+      );
     }
 
     if (bgLoopType === "pingpong" && bgVideoDurationInFrames && bgReversedSrc) {

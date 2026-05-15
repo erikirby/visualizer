@@ -213,13 +213,7 @@ export const App = () => {
   const [canExport, setCanExport] = useState<boolean | null>(null);
   const [audioReady, setAudioReady] = useState(false);
 
-  const [proxyUrl, setProxyUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
-    }
-  }, []);
 
   useEffect(() => {
     canRenderMediaOnWeb({ container: "mp4", width: 1920, height: 1080 })
@@ -254,21 +248,6 @@ export const App = () => {
         setBgVideoDurationInFrames(Math.round(vid.duration * 30));
       };
       vid.src = blobUrl;
-
-      // Register with Service Worker for robust export HTTP Range requests
-      const id = crypto.randomUUID();
-      const newProxyUrl = `/video-proxy/${id}`;
-      if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
-        const channel = new MessageChannel();
-        channel.port1.onmessage = () => setProxyUrl(newProxyUrl);
-        navigator.serviceWorker.controller.postMessage({ type: "register-blob", id, blob: file }, [channel.port2]);
-      } else {
-        navigator.serviceWorker.ready.then((reg) => {
-          const channel = new MessageChannel();
-          channel.port1.onmessage = () => setProxyUrl(newProxyUrl);
-          reg.active?.postMessage({ type: "register-blob", id, blob: file }, [channel.port2]);
-        });
-      }
     } else {
       setBgVideoDurationInFrames(undefined);
       // Images: blob URL is fine — Remotion's Img component handles it correctly.
@@ -344,9 +323,9 @@ export const App = () => {
           height: 1080,
           fps: 30,
           durationInFrames,
-          defaultProps: { ...inputProps, backgroundSrc: proxyUrl || backgroundUrl || "", isExporting: true },
+          defaultProps: { ...inputProps, isExporting: true },
         },
-        inputProps: { ...inputProps, backgroundSrc: proxyUrl || backgroundUrl || "", isExporting: true },
+        inputProps: { ...inputProps, isExporting: true },
         container: "mp4",
         videoBitrate: 25_000_000,
         allowHtmlInCanvas: true,
