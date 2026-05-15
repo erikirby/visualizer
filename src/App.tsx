@@ -188,7 +188,7 @@ export const App = () => {
   useEffect(() => { audioDurationRef.current = audioDuration; }, [audioDuration]);
 
   const presets = [
-    { id: "midnight", name: "Neon Constellation", config: { themeId: 1, layout: "constellation", showParticles: true, particleDirection: "in", overlayType: "light-leak", overlayOpacity: 0.4 } },
+    { id: "midnight", name: "Neon Constellation", config: { themeId: 1, layout: "constellation", showParticles: true, particleDirection: "in", particleSpeed: 0.18, particleCount: 1.26, particlePulse: false, overlayType: "light-leak", overlayOpacity: 0.4 } },
     { id: "electric", name: "Acid Wave", config: { themeId: 5, layout: "solidwave", showParticles: true, particleDirection: "up", overlayType: "scanlines", overlayOpacity: 0.3 } },
     { id: "minimal", name: "Ice Cold", config: { themeId: 3, layout: "bottom", showParticles: false, overlayType: "none" } },
     { id: "iridescent", name: "Iridescent Orbit", config: { themeId: 9, layout: "echo", showParticles: true, particleDirection: "out", overlayType: "light-leak", overlayOpacity: 0.4 } },
@@ -200,6 +200,9 @@ export const App = () => {
     if (c.layout !== undefined) setLayout(c.layout as VisualizerLayout);
     if (c.showParticles !== undefined) setShowParticles(c.showParticles);
     if (c.particleDirection !== undefined) setParticleDirection(c.particleDirection);
+    if (c.particleSpeed !== undefined) setParticleSpeed(c.particleSpeed);
+    if (c.particleCount !== undefined) setParticleCount(c.particleCount);
+    if (c.particlePulse !== undefined) setParticlePulse(c.particlePulse);
     if (c.overlayType !== undefined) setOverlayType(c.overlayType);
     if (c.overlayOpacity !== undefined) setOverlayOpacity(c.overlayOpacity);
   };
