@@ -477,12 +477,12 @@ export const App = () => {
                 </select>
               </div>
               <div className="control-group">
-                <label>Speed — {particleSpeed.toFixed(2)}x</label>
+                <label>Speed — {parseFloat((particleSpeed / 0.3).toFixed(1))}x</label>
                 <input type="range" min="0.05" max="3" step="0.05" value={particleSpeed} onChange={e => setParticleSpeed(Number(e.target.value))}
                   style={{ width: '100%', accentColor: 'var(--accent-pink)', cursor: 'pointer' }} />
               </div>
               <div className="control-group">
-                <label>Amount — {Math.round(particleCount * 100)}%</label>
+                <label>Amount — {Math.round(particleCount / 2.0 * 100)}%</label>
                 <input type="range" min="0.25" max="4" step="0.25" value={particleCount} onChange={e => setParticleCount(Number(e.target.value))}
                   style={{ width: '100%', accentColor: 'var(--accent-pink)', cursor: 'pointer' }} />
               </div>
