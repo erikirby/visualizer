@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import {
   AbsoluteFill,
   Img,
@@ -9,17 +9,11 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-// <Video> from @remotion/media is the only video component supported in
-// renderMediaOnWeb (client-side rendering). Neither <OffthreadVideo> nor
-// <Video> from "remotion" (Html5Video) work in the web renderer.
-import { Video } from "@remotion/media";
 
 interface VisualBackgroundProps {
   bassScale?: number;
   backgroundSrc?: string;
   bgIsVideo?: boolean;
-  // Video looping — populated by calculateMetadata when background-config.json
-  // contains a loopType field.  Absent → image background (existing behaviour).
   bgLoopType?:              "standard" | "pingpong";
   bgReversedSrc?:           string;
   bgVideoDurationInFrames?: number;
@@ -34,6 +28,37 @@ const VIDEO_FILL_STYLE: React.CSSProperties = {
   objectPosition: "center center",
 };
 
+// Plain <video> element that seeks to the exact frame on every render.
+// Works with blob: URLs (which ARE seekable, unlike data: URLs).
+// With allowHtmlInCanvas enabled, the screenshot captures the video at
+// whatever currentTime we've set — giving correct frame-accurate rendering.
+const SeekableVideo: React.FC<{ src: string; durationInFrames?: number }> = ({ src, durationInFrames }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const ref = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = ref.current;
+    if (!video) return;
+    const loopFrames = durationInFrames ?? Infinity;
+    const loopedFrame = isFinite(loopFrames) ? frame % loopFrames : frame;
+    const targetTime = loopedFrame / fps;
+    if (Math.abs(video.currentTime - targetTime) > 0.001) {
+      video.currentTime = targetTime;
+    }
+  });
+
+  return (
+    <video
+      ref={ref}
+      src={src}
+      muted
+      playsInline
+      preload="auto"
+      style={VIDEO_FILL_STYLE}
+    />
+  );
+};
 
 export const VisualBackground: React.FC<VisualBackgroundProps> = ({
   bassScale = 1,
@@ -48,10 +73,7 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
 
   const src     = backgroundSrc ?? staticFile("background.png");
   const isVideo = bgIsVideo === true || bgLoopType !== undefined || VIDEO_EXT_RE.test(src);
-  // User-uploaded videos arrive as data: URLs (FileReader.readAsDataURL).
-  // Data URLs are self-contained — no network fetch, no buffering-detector issue,
-  // works identically in the Player preview and renderMediaOnWeb export.
-  const isDataUrl = src.startsWith("data:");
+  const isBlobUrl = src.startsWith("blob:");
 
   const t = frame / fps;
 
@@ -65,16 +87,10 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
   const buildVideoNode = (): React.ReactNode => {
     if (!isVideo) return null;
 
-    if (isDataUrl) {
-      // @remotion/media <Video> works in both Player preview and renderMediaOnWeb export.
-      if (bgVideoDurationInFrames) {
-        return (
-          <Loop durationInFrames={bgVideoDurationInFrames}>
-            <Video src={src} muted style={VIDEO_FILL_STYLE} />
-          </Loop>
-        );
-      }
-      return <Video src={src} muted style={VIDEO_FILL_STYLE} />;
+    if (isBlobUrl) {
+      // Blob URL: seekable, frame-accurate via SeekableVideo.
+      // allowHtmlInCanvas screenshots capture the correct frame.
+      return <SeekableVideo src={src} durationInFrames={bgVideoDurationInFrames} />;
     }
 
     if (bgLoopType === "pingpong" && bgVideoDurationInFrames && bgReversedSrc) {
@@ -131,7 +147,6 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
           )}
         </AbsoluteFill>
       </AbsoluteFill>
-
     </AbsoluteFill>
   );
 };

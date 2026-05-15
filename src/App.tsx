@@ -238,22 +238,17 @@ export const App = () => {
     const isVid = file.type.startsWith("video/");
     setBgIsVideo(isVid);
     if (isVid) {
-      // Probe duration with a temporary blob URL (revoked immediately after).
-      const metaUrl = URL.createObjectURL(file);
+      // Use a blob URL — it's seekable (data URLs are not), which is required
+      // for frame-accurate rendering. allowHtmlInCanvas screenshots the DOM at
+      // each frame, capturing whatever currentTime we've seeked the video to.
+      const blobUrl = URL.createObjectURL(file);
+      setBackgroundUrl(blobUrl);
       const vid = document.createElement("video");
       vid.preload = "metadata";
       vid.onloadedmetadata = () => {
         setBgVideoDurationInFrames(Math.round(vid.duration * 30));
-        URL.revokeObjectURL(metaUrl);
       };
-      vid.src = metaUrl;
-      // Convert to data URL so Remotion's Video component can fetch it during
-      // both preview and renderMediaOnWeb export — blob: URLs fail in export.
-      const reader = new FileReader();
-      reader.onload = () => {
-        setBackgroundUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      vid.src = blobUrl;
     } else {
       setBgVideoDurationInFrames(undefined);
       // Images: blob URL is fine — Remotion's Img component handles it correctly.
