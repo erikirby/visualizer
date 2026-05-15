@@ -93,9 +93,22 @@ export const EchoPulse: React.FC<EchoPulseProps> = ({
     : getMusicViz(vizRaw, NUM_BARS, spectrumType);
 
   // 2. Apply mirroring if requested, otherwise use rawBars directly
-  const liveBars = reflection
+  let liveBars = reflection
     ? [...rawBars].reverse().concat(rawBars)
-    : rawBars;
+    : [...rawBars];
+
+  // 3. Seam Smoothing (Only when not mirroring)
+  // Blends the high-freq end of the circle into the low-freq start to avoid sharp jumps.
+  if (!reflection && liveBars.length > 0) {
+    const n = liveBars.length;
+    const startH  = liveBars[0];
+    const stableH = liveBars[n - 4] ?? 0; // Reference height for the "normal" highs
+    
+    // Smoothly ramp the last 3 bars between the start and the stable high height
+    liveBars[n - 1] = startH * 0.75 + stableH * 0.25;
+    liveBars[n - 2] = startH * 0.50 + stableH * 0.50;
+    liveBars[n - 3] = startH * 0.25 + stableH * 0.75;
+  }
 
   const cx = CANVAS_W / 2;
   const cy = CANVAS_H / 2;
