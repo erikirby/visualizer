@@ -172,8 +172,8 @@ export const App = () => {
   };
   const [reflection, setReflection] = useState<boolean>(true);
   const [showTitles, setShowTitles] = useState<boolean>(true);
-  const [artistName, setArtistName] = useState<string>("ARTIST NAME");
-  const [trackName, setTrackName] = useState<string>("TRACK TITLE");
+  const [artistName, setArtistName] = useState<string>("");
+  const [trackName, setTrackName] = useState<string>("");
   const [reverseTitles, setReverseTitles] = useState<boolean>(false);
   const [fontFamily, setFontFamily] = useState<string>("Inter");
   const [showLyrics, setShowLyrics] = useState<boolean>(true);
