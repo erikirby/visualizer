@@ -217,7 +217,19 @@ export const App = () => {
     const url = URL.createObjectURL(file);
     setBackgroundUrl(url);
     setBackgroundName(file.name);
-    setBgIsVideo(file.type.startsWith("video/"));
+    const isVid = file.type.startsWith("video/");
+    setBgIsVideo(isVid);
+    if (isVid) {
+      const vid = document.createElement("video");
+      vid.preload = "metadata";
+      vid.onloadedmetadata = () => {
+        setBgVideoDurationInFrames(Math.round(vid.duration * 30));
+        URL.revokeObjectURL(vid.src);
+      };
+      vid.src = url;
+    } else {
+      setBgVideoDurationInFrames(undefined);
+    }
   };
 
   const handleLyricsUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -289,6 +301,7 @@ export const App = () => {
         },
         inputProps,
         container: "mp4",
+        videoBitrate: "12M",
         onProgress: ({ progress }) => setProgress(Math.round(progress * 100)),
       });
 
@@ -316,6 +329,8 @@ export const App = () => {
     audioDuration,
     layout,
     backgroundSrc: backgroundUrl || "",
+    bgIsVideo,
+    bgVideoDurationInFrames,
     showParticles,
     particleDirection,
     particleSpeed,

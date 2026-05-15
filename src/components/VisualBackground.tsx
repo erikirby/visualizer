@@ -13,6 +13,7 @@ import {
 interface VisualBackgroundProps {
   bassScale?: number;
   backgroundSrc?: string;
+  bgIsVideo?: boolean;
   // Video looping — populated by calculateMetadata when background-config.json
   // contains a loopType field.  Absent → image background (existing behaviour).
   bgLoopType?:              "standard" | "pingpong";
@@ -35,6 +36,7 @@ const VIDEO_FILL_STYLE: React.CSSProperties = {
 export const VisualBackground: React.FC<VisualBackgroundProps> = ({
   bassScale = 1,
   backgroundSrc,
+  bgIsVideo,
   bgLoopType,
   bgReversedSrc,
   bgVideoDurationInFrames,
@@ -43,7 +45,7 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
   const { fps, durationInFrames: totalFrames } = useVideoConfig();
 
   const src     = backgroundSrc ?? staticFile("background.png");
-  const isVideo = bgLoopType !== undefined || VIDEO_EXT_RE.test(src);
+  const isVideo = bgIsVideo === true || bgLoopType !== undefined || VIDEO_EXT_RE.test(src);
 
   const t = frame / fps;
 
@@ -129,7 +131,7 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
       <AbsoluteFill
         style={{
           background:
-            "radial-gradient(ellipse at 50% 40%, transparent 45%, rgba(8, 8, 24, 0.72) 100%)",
+            "radial-gradient(ellipse at 50% 50%, transparent 52%, rgba(8, 8, 24, 0.70) 100%)",
           pointerEvents: "none",
         }}
       />

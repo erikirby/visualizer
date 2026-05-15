@@ -36,6 +36,7 @@ export type VisualizerProps = {
   audioDuration: number;
   layout: VisualizerLayout;
   backgroundSrc: string;
+  bgIsVideo?: boolean;
   // Video background looping (set by calculateMetadata from background-config.json)
   bgLoopType?:             "standard" | "pingpong";
   bgReversedSrc?:          string;
@@ -79,6 +80,7 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
   audioDuration,
   layout,
   backgroundSrc,
+  bgIsVideo,
   bgLoopType,
   bgReversedSrc,
   bgVideoDurationInFrames,
@@ -152,6 +154,7 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
       <VisualBackground
         bassScale={screenPulse ? bassScale : 1}
         backgroundSrc={backgroundSrc as string}
+        bgIsVideo={bgIsVideo}
         bgLoopType={bgLoopType}
         bgReversedSrc={bgReversedSrc as string | undefined}
         bgVideoDurationInFrames={bgVideoDurationInFrames}
