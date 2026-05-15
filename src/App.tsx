@@ -423,12 +423,17 @@ export const App = () => {
             </label>
           </div>
           <div className="control-group">
-            <label>Background</label>
+            <label>Background (image or video)</label>
             <label className="file-upload">
               <FileImage className="file-upload-icon" size={20} />
               <span className="file-upload-text">{backgroundName || "Upload Image/Video"}</span>
               <input type="file" accept="image/*,video/*" onChange={handleBackgroundUpload} />
             </label>
+            {bgIsVideo && (
+              <p style={{ fontSize: "11px", color: "var(--text-muted, #888)", marginTop: "6px" }}>
+                Video backgrounds will take longer to render.
+              </p>
+            )}
           </div>
 
           <div className="section-title">2. Visual Design</div>
