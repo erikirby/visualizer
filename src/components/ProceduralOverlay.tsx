@@ -53,45 +53,28 @@ export const ProceduralOverlay: React.FC<ProceduralOverlayProps> = ({
   if (type === "light-leak") {
     const t = frame / 30;
 
-    // Blobs drift freely — overflow="visible" on the SVG removes the viewport clip
-    // so gradients bleed naturally to (and past) the screen edges with no hard line.
     const cx  = 50 + 30 * Math.sin(t * 0.17);
     const cy  = 42 + 26 * Math.cos(t * 0.11 + 1.2);
     const r   = 85 + 12 * Math.sin(t * 0.14);
 
-    // Blob B: π phase-shifted so it always sits opposite A
     const cx2 = 50 + 34 * Math.sin(t * 0.13 + Math.PI);
     const cy2 = 56 + 28 * Math.cos(t * 0.09 + Math.PI + 0.8);
     const r2  = 78 + 12 * Math.cos(t * 0.16 + 0.5);
 
     const op = opacity ?? 0.48;
 
+    // CSS radial-gradient on plain divs — no SVG viewport, no clipping, fills
+    // the frame edge-to-edge no matter where the blob center drifts.
     return (
       <AbsoluteFill style={{ pointerEvents: "none", opacity: op }}>
-        {/* SVG is 120% of the frame, offset -10% on each side.
-            Its viewport boundary falls outside the visible area so the
-            gradient reaches every pixel edge with no internal hard line. */}
-        <svg
-          viewBox="-10 -10 120 120"
-          preserveAspectRatio="none"
-          overflow="visible"
-          style={{ position: "absolute", inset: "-10%" }}
-        >
-          <defs>
-            <radialGradient id="po-leak-a" gradientUnits="userSpaceOnUse" cx={cx} cy={cy} r={r}>
-              <stop offset="0%"   stopColor={colorA} stopOpacity="0.9"  />
-              <stop offset="40%"  stopColor={colorA} stopOpacity="0.4"  />
-              <stop offset="100%" stopColor={colorA} stopOpacity="0"    />
-            </radialGradient>
-            <radialGradient id="po-leak-b" gradientUnits="userSpaceOnUse" cx={cx2} cy={cy2} r={r2}>
-              <stop offset="0%"   stopColor={colorB} stopOpacity="0.75" />
-              <stop offset="45%"  stopColor={colorB} stopOpacity="0.28" />
-              <stop offset="100%" stopColor={colorB} stopOpacity="0"    />
-            </radialGradient>
-          </defs>
-          <rect x="-10" y="-10" width="120" height="120" fill="url(#po-leak-a)" />
-          <rect x="-10" y="-10" width="120" height="120" fill="url(#po-leak-b)" />
-        </svg>
+        <div style={{
+          position: "absolute", inset: 0,
+          background: `radial-gradient(ellipse ${r}% ${r}% at ${cx}% ${cy}%, ${colorA}E6 0%, ${colorA}66 40%, ${colorA}00 100%)`,
+        }} />
+        <div style={{
+          position: "absolute", inset: 0,
+          background: `radial-gradient(ellipse ${r2}% ${r2}% at ${cx2}% ${cy2}%, ${colorB}BF 0%, ${colorB}47 45%, ${colorB}00 100%)`,
+        }} />
       </AbsoluteFill>
     );
   }
