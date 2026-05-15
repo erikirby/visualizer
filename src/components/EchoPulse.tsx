@@ -26,6 +26,11 @@ const SEAM_BLEND = 8;   // bars on the trailing edge that get smoothed
 // Solid variant is scaled down so it doesn't fill the full frame
 const SOLID_BAR_SCALE = 0.60;  // max radius = 200 + 400*0.6 = 440px
 
+// Soft saturation — value curves up but never hits the hard ceiling
+function soft(v: number): number {
+  return v <= 0.65 ? v : 0.65 + (v - 0.65) * 0.2;
+}
+
 // ── Seam smoothing ────────────────────────────────────────────────────────────
 // The original frequency mapping (bass→treble clockwise) is preserved untouched.
 // Only the HEIGHT of the last SEAM_BLEND bars is linearly ramped toward bar 0's
@@ -125,7 +130,7 @@ export const EchoPulse: React.FC<EchoPulseProps> = ({
   if (variant === "bars") {
     for (let i = 0; i < NUM_BARS; i++) {
       const angle = -Math.PI / 2 + (i / NUM_BARS) * Math.PI * 2;
-      const barH  = (liveBars[i] ?? 0) * MAX_BAR_H;
+      const barH  = soft(liveBars[i] ?? 0) * MAX_BAR_H;
       const cosA  = Math.cos(angle);
       const sinA  = Math.sin(angle);
       const color = getFreqColor(i, NUM_BARS, colorA, colorB);  // original color sweep preserved
@@ -165,11 +170,11 @@ export const EchoPulse: React.FC<EchoPulseProps> = ({
   // Use seam-blended liveBars (original frequency mapping) scaled down so the
   // shape doesn't dominate the frame. SOLID_BAR_SCALE caps max radius at ~440px.
   const outerRs = Array.from({ length: NUM_BARS }, (_, i) =>
-    INNER_R + (liveBars[i] ?? 0) * MAX_BAR_H * SOLID_BAR_SCALE,
+    INNER_R + soft(liveBars[i] ?? 0) * MAX_BAR_H * SOLID_BAR_SCALE,
   );
   const innerLayerRs = layers
     ? Array.from({ length: NUM_BARS }, (_, i) =>
-        INNER_R + (liveBars[i] ?? 0) * MAX_BAR_H * SOLID_BAR_SCALE * 0.75,
+        INNER_R + soft(liveBars[i] ?? 0) * MAX_BAR_H * SOLID_BAR_SCALE * 0.75,
       )
     : [];
 

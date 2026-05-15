@@ -44,7 +44,8 @@ export const FrequencyRings: React.FC<FrequencyRingsProps> = ({
     const end   = Math.floor((i + 1) * binsPerBand);
     const slice = raw.slice(start, end);
     const avg   = slice.reduce((a, b) => a + b, 0) / Math.max(slice.length, 1);
-    return Math.min(1, avg);
+    const v = avg;
+    return v <= 0.65 ? v : 0.65 + (v - 0.65) * 0.2;
   });
 
   // Glow size driven by overall energy
