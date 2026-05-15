@@ -9,6 +9,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
+import { Video } from "@remotion/media";
 
 interface VisualBackgroundProps {
   bassScale?: number;
@@ -55,16 +56,17 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
   const buildVideoNode = (): React.ReactNode => {
     if (!isVideo) return null;
 
-    if (isUserUpload && bgVideoDurationInFrames) {
-      return (
-        <Loop durationInFrames={bgVideoDurationInFrames}>
-          <OffthreadVideo src={src} muted style={VIDEO_FILL_STYLE} />
-        </Loop>
-      );
-    }
-
+    // User-uploaded video served via SW proxy with Range support.
+    // @remotion/media Video is the only component that works in renderMediaOnWeb for user uploads.
     if (isUserUpload) {
-      return <OffthreadVideo src={src} muted style={VIDEO_FILL_STYLE} />;
+      if (bgVideoDurationInFrames) {
+        return (
+          <Loop durationInFrames={bgVideoDurationInFrames}>
+            <Video src={src} muted style={VIDEO_FILL_STYLE} />
+          </Loop>
+        );
+      }
+      return <Video src={src} muted style={VIDEO_FILL_STYLE} />;
     }
 
     if (bgLoopType === "pingpong" && bgVideoDurationInFrames && bgReversedSrc) {
