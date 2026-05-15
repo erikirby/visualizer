@@ -197,11 +197,12 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
           audioDuration={audioDuration}
           bottomOffset={layout === "bottom" || layout === "audiogram" ? 320 : undefined}
           fontFamily={fontFamily}
+          colorA={colorA}
         />
       )}
 
       {showTitles && artistName && trackName && (
-        <ArtistBug artistName={artistName} trackName={trackName} size="full" reverseTitles={reverseTitles} fontFamily={fontFamily} />
+        <ArtistBug artistName={artistName} trackName={trackName} size="full" reverseTitles={reverseTitles} fontFamily={fontFamily} colorA={colorA} colorB={colorB} />
       )}
 
       {beatFlash > 0.05 && (

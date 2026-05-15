@@ -33,6 +33,7 @@ interface LineDisplayProps {
   opacity: number;
   isCurrentLine: boolean;
   fontFamilyStr: string;
+  colorA: string;
 }
 
 const LineDisplay: React.FC<LineDisplayProps> = ({
@@ -42,14 +43,15 @@ const LineDisplay: React.FC<LineDisplayProps> = ({
   opacity,
   isCurrentLine,
   fontFamilyStr,
+  colorA,
 }) => {
   const textStyle: React.CSSProperties = isCurrentLine
     ? {
         color: TEXT_WHITE,
         textShadow: [
-          `0 0 18px rgba(255, 45, 155, 0.85)`,
-          `0 0 40px rgba(255, 45, 155, 0.45)`,
-          `0 0 70px rgba(255, 45, 155, 0.2)`,
+          `0 0 18px ${colorA}D9`,
+          `0 0 40px ${colorA}73`,
+          `0 0 70px ${colorA}33`,
         ].join(", "),
       }
     : {
@@ -86,6 +88,7 @@ export interface LyricEngineProps {
   audioDuration: number;
   bottomOffset?: number;
   fontFamily?: string;
+  colorA?: string;
 }
 
 // Show each line this many seconds before its timestamp.
@@ -93,7 +96,7 @@ export interface LyricEngineProps {
 // rather than reacting a beat late.
 const LEAD_SECS = 0.35;
 
-export const LyricEngine: React.FC<LyricEngineProps> = ({ lines, audioDuration, bottomOffset, fontFamily = "Inter" }) => {
+export const LyricEngine: React.FC<LyricEngineProps> = ({ lines, audioDuration, bottomOffset, fontFamily = "Inter", colorA = "#FF2D9B" }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const currentTime = frame / fps;
@@ -160,6 +163,7 @@ export const LyricEngine: React.FC<LyricEngineProps> = ({ lines, audioDuration, 
             opacity={prevOpacity}
             isCurrentLine={false}
             fontFamilyStr={getFontFamily(fontFamily)}
+            colorA={colorA}
           />
         )}
 
@@ -171,6 +175,7 @@ export const LyricEngine: React.FC<LyricEngineProps> = ({ lines, audioDuration, 
           opacity={1}
           isCurrentLine={true}
           fontFamilyStr={getFontFamily(fontFamily)}
+          colorA={colorA}
         />
       </div>
     </AbsoluteFill>

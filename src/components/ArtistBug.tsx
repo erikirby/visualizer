@@ -26,6 +26,8 @@ interface ArtistBugProps {
   size?: ArtistBugSize;
   reverseTitles?: boolean;
   fontFamily?: string;
+  colorA?: string;
+  colorB?: string;
 }
 
 export const ArtistBug: React.FC<ArtistBugProps> = ({
@@ -34,6 +36,8 @@ export const ArtistBug: React.FC<ArtistBugProps> = ({
   size = "full",
   reverseTitles = false,
   fontFamily = "Inter",
+  colorA = "#FF2D9B",
+  colorB = "#00B4FF",
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -80,8 +84,8 @@ export const ArtistBug: React.FC<ArtistBugProps> = ({
             letterSpacing: "0.02em",
             lineHeight: 1,
             textShadow: [
-              "0 0 16px rgba(255,45,155,0.80)",
-              "0 0 36px rgba(255,45,155,0.35)",
+              `0 0 16px ${colorA}CC`,
+              `0 0 36px ${colorA}59`,
               "0 2px 4px rgba(0,0,0,0.6)",
             ].join(", "),
           }}
@@ -95,7 +99,7 @@ export const ArtistBug: React.FC<ArtistBugProps> = ({
             width: isSmall ? 120 : 180,
             height: isSmall ? 1.5 : 2,
             background:
-              "linear-gradient(90deg, rgba(255,45,155,0.85) 0%, rgba(0,180,255,0.4) 100%)",
+              `linear-gradient(90deg, ${colorA}D9 0%, ${colorB}66 100%)`,
             borderRadius: 1,
           }}
         />
