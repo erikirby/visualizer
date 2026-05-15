@@ -98,6 +98,14 @@ export const FrequencyRings: React.FC<FrequencyRingsProps> = ({
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
+        {/* Separate filter for center dot — userSpaceOnUse avoids square clipping on small elements */}
+        <filter id="dot-glow" filterUnits="userSpaceOnUse" x="820" y="400" width="280" height="280">
+          <feGaussianBlur stdDeviation={glowSize} result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
         <radialGradient id="rings-bg" cx="50%" cy="50%" r="50%">
           <stop offset="0%"   stopColor="rgba(8,8,24,0.6)" />
           <stop offset="100%" stopColor="rgba(8,8,24,0)"   />
@@ -119,7 +127,7 @@ export const FrequencyRings: React.FC<FrequencyRingsProps> = ({
         cx={cx} cy={cy} r={6 + overallEnergy * 14}
         fill={getFreqColor(0, NUM_VIZ, colorA, colorB)}
         opacity={0.9}
-        filter="url(#rings-glow)"
+        filter="url(#dot-glow)"
       />
     </svg>
   );

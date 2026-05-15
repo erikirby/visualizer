@@ -81,9 +81,16 @@ export const App = () => {
           setSyncStatus(''); setIsSyncing(false);
           if (e.data.result?.chunks) {
              const currentRawLyrics = rawLyricsRef.current;
-             // Convert string to words for aligner
              const userWords: AlignWord[] = currentRawLyrics.split(/\s+/).filter(x => x.length > 0).map((w, i) => ({ text: w, idx: i }));
-             const aligned = forceAlign(userWords, e.data.result.chunks);
+             // Map Xenova's { text, timestamp: [start, end] } format to AlignWord
+             const whisperWords: AlignWord[] = (e.data.result.chunks as any[])
+               .map((c, i) => ({
+                 text: (c.text ?? '').trim(),
+                 idx: i,
+                 time: Array.isArray(c.timestamp) ? c.timestamp[0] : (c.time ?? 0),
+               }))
+               .filter(w => w.text.length > 0);
+             const aligned = forceAlign(userWords, whisperWords);
              setLines(aligned);
              setShowLyrics(true);
              setSyncStatus("SYNCED");
@@ -193,7 +200,7 @@ export const App = () => {
     setSyncStatus("Decoding Audio...");
     try {
       const audioData = await decodeAudio(audioUrl);
-      worker.current?.postMessage({ audio: audioData, lyrics: lyricsSnapshot });
+      worker.current?.postMessage({ audio: audioData, text: lyricsSnapshot });
     } catch (err: any) {
       alert(`Sync failed: ${err?.message ?? "couldn't decode audio"}`);
       setIsSyncing(false);
@@ -382,6 +389,16 @@ export const App = () => {
                   <option value="in">Inwards</option>
                   <option value="out">Outwards</option>
                 </select>
+              </div>
+              <div className="control-group">
+                <label>Speed — {particleSpeed.toFixed(1)}x</label>
+                <input type="range" min="0.25" max="3" step="0.25" value={particleSpeed} onChange={e => setParticleSpeed(Number(e.target.value))}
+                  style={{ width: '100%', accentColor: 'var(--accent-pink)', cursor: 'pointer' }} />
+              </div>
+              <div className="control-group">
+                <label>Amount — {Math.round(particleCount * 100)}%</label>
+                <input type="range" min="0.25" max="2" step="0.25" value={particleCount} onChange={e => setParticleCount(Number(e.target.value))}
+                  style={{ width: '100%', accentColor: 'var(--accent-pink)', cursor: 'pointer' }} />
               </div>
               <div className="toggle-group">
                 <label>Audio Reactive</label>

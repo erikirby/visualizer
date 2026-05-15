@@ -22,8 +22,10 @@ export function forceAlign(userWords: AlignWord[], whisperWords: AlignWord[]): A
     for (let j = 0; j <= M; j++) score[0][j] = j * GAP;
     
     function similarity(w1: string, w2: string) {
-        if (w1 === w2) return MATCH;
-        if (w1.length > 2 && w2.length > 2 && (w1.includes(w2) || w2.includes(w1))) return 1;
+        const a = w1.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const b = w2.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (a === b) return MATCH;
+        if (a.length > 2 && b.length > 2 && (a.includes(b) || b.includes(a))) return 1;
         return MISMATCH;
     }
     
