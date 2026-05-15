@@ -214,6 +214,12 @@ export const App = () => {
   const [audioReady, setAudioReady] = useState(false);
 
   useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
     canRenderMediaOnWeb({ container: "mp4", width: 1920, height: 1080 })
       .then(({ canRender }) => setCanExport(canRender));
   }, []);
@@ -238,16 +244,23 @@ export const App = () => {
     const isVid = file.type.startsWith("video/");
     setBgIsVideo(isVid);
     if (isVid) {
-      // Register the file with the Service Worker so it can be served at
-      // /video-proxy/{id} with proper HTTP Range responses — required for
-      // @remotion/media Video to seek frame-accurately.
-      setBackgroundUrl(URL.createObjectURL(file));
+      const id = crypto.randomUUID();
+      const proxyUrl = `/video-proxy/${id}`;
+      // Get duration from a temporary blob URL, then register with SW
+      const blobUrl = URL.createObjectURL(file);
       const vid = document.createElement("video");
       vid.preload = "metadata";
       vid.onloadedmetadata = () => {
         setBgVideoDurationInFrames(Math.round(vid.duration * 30));
+        URL.revokeObjectURL(blobUrl);
       };
-      vid.src = URL.createObjectURL(file);
+      vid.src = blobUrl;
+      // Register blob with SW; only set the proxy URL once SW confirms it's stored
+      navigator.serviceWorker.ready.then((reg) => {
+        const channel = new MessageChannel();
+        channel.port1.onmessage = () => setBackgroundUrl(proxyUrl);
+        reg.active?.postMessage({ type: "register-blob", id, blob: file }, [channel.port2]);
+      });
     } else {
       setBgVideoDurationInFrames(undefined);
       // Images: blob URL is fine — Remotion's Img component handles it correctly.
