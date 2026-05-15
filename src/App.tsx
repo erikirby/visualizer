@@ -22,7 +22,7 @@ async function decodeAudio(url: string): Promise<Float32Array> {
 const layouts = [
   { id: "none", name: "None" },
   { id: "bottom", name: "Bottom Bars" },
-  { id: "audiogram", name: "Audiogram (Full Width)" },
+  { id: "audiogram", name: "Bars (Full Width)" },
   { id: "solidwave", name: "Solid Wave" },
   { id: "rings", name: "Frequency Rings" },
   { id: "echo", name: "Circle" },
@@ -81,7 +81,15 @@ export const App = () => {
           setSyncStatus(''); setIsSyncing(false);
           if (e.data.result?.chunks) {
              const currentRawLyrics = rawLyricsRef.current;
-             const userWords: AlignWord[] = currentRawLyrics.split(/\s+/).filter(x => x.length > 0).map((w, i) => ({ text: w, idx: i }));
+             // Split into lines — each line becomes one display unit
+             const lyricLines = currentRawLyrics.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+             // Build flat word list tagged with which line they belong to
+             const userWords: AlignWord[] = [];
+             lyricLines.forEach((line, lineIdx) => {
+               line.split(/\s+/).filter(w => w.length > 0).forEach(word => {
+                 userWords.push({ text: word, idx: userWords.length, lineIdx });
+               });
+             });
              // Map Xenova's { text, timestamp: [start, end] } format to AlignWord
              const whisperWords: AlignWord[] = (e.data.result.chunks as any[])
                .map((c, i) => ({
@@ -91,7 +99,14 @@ export const App = () => {
                }))
                .filter(w => w.text.length > 0);
              const aligned = forceAlign(userWords, whisperWords);
-             setLines(aligned);
+             // Group back into LrcLine objects — one per original lyric line
+             const lrcLines = lyricLines.map((lineText, lineIdx) => {
+               const words = aligned.filter(w => w.lineIdx === lineIdx);
+               const firstTimed = words.find(w => w.time !== undefined);
+               const time = firstTimed?.time ?? 0;
+               return { time, text: lineText, words: words.map(w => w.text) };
+             });
+             setLines(lrcLines);
              setShowLyrics(true);
              setSyncStatus("SYNCED");
           }
@@ -456,7 +471,15 @@ export const App = () => {
 
           {showLyrics && (
              <div className="advanced-panel" style={{ padding: '12px', background: 'rgba(0,0,0,0.15)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-               <textarea className="text-input" rows={3} placeholder="Paste lyrics here..." value={rawLyrics} onChange={e => setRawLyrics(e.target.value.replace(/\[.*?\]/g, "").replace(/\s+/g, " ").trimStart())} style={{fontSize: '12px'}} />
+               <textarea className="text-input" rows={3} placeholder="Paste lyrics here (one line per lyric)..." value={rawLyrics} onChange={e => {
+                 const cleaned = e.target.value
+                   .replace(/\[.*?\]/g, "")
+                   .split('\n')
+                   .map(l => l.replace(/\s+/g, ' ').trim())
+                   .filter(l => l.length > 0)
+                   .join('\n');
+                 setRawLyrics(cleaned);
+               }} style={{fontSize: '12px'}} />
                <button className="primary-button" onClick={handleSync} disabled={isSyncing || !rawLyrics} style={{padding: '8px', fontSize: '12px', background: 'var(--accent-blue)'}}>
                  {isSyncing ? "Syncing..." : syncStatus === "SYNCED" ? "Synced ✓" : "Sync Lyrics"}
                </button>

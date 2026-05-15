@@ -10,7 +10,7 @@ const CANVAS_H  = 1080;
 const BAR_UNIT  = CANVAS_W / NUM_BARS;  // 12 px per slot
 const BAR_W     = BAR_UNIT - 2;         // 10 px bar, 2 px gap
 const MAX_H     = 300;                  // tallest a bar can get (px)
-const BASELINE  = 970;                  // y-coordinate of the floor line
+const BASELINE  = 1080;                 // y-coordinate of the floor line (flush to bottom edge)
 const REFL_MAX  = 90;                   // max reflection height below baseline
 
 // ── Band-peak normalization ───────────────────────────────────────────────────

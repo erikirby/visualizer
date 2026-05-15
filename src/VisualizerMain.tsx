@@ -192,10 +192,10 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
 
       {/* Lyrics Engine — independently toggled */}
       {showLyrics && (
-        <LyricEngine 
-          lines={lines as any[]} 
-          audioDuration={audioDuration} 
-          bottomOffset={layout === "bottom" ? 280 : undefined} 
+        <LyricEngine
+          lines={lines as any[]}
+          audioDuration={audioDuration}
+          bottomOffset={layout === "bottom" || layout === "audiogram" ? 320 : undefined}
           fontFamily={fontFamily}
         />
       )}
