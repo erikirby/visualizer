@@ -11,6 +11,7 @@ interface ConstellationNetProps {
   // Derived from audioDuration in VisualizerMain — different songs = different layouts.
   seed?: number;
   showNames?: boolean;
+  spectrumType?: "bass" | "wide";
 }
 
 const W = 1920;
@@ -319,6 +320,7 @@ export const ConstellationNet: React.FC<ConstellationNetProps> = ({
   colorB = "#00B4FF",
   seed   = 0,
   showNames = true,
+  spectrumType = "wide",
 }) => {
   const frame     = useCurrentFrame();
   const { fps }   = useVideoConfig();
@@ -327,7 +329,7 @@ export const ConstellationNet: React.FC<ConstellationNetProps> = ({
   if (!audioData) return null;
 
   const vizRaw     = visualizeAudio({ fps, frame, audioData, numberOfSamples: 256, smoothing: true });
-  const bars       = getMusicViz(vizRaw, NUM_BARS);
+  const bars       = getMusicViz(vizRaw, NUM_BARS, spectrumType);
   const bassEnergy = getBassEnergy(bars);
   const glowSize   = 2.5 + bassEnergy * 11;
 

@@ -182,6 +182,7 @@ export const App = () => {
   const [showConstellationNames, setShowConstellationNames] = useState<boolean>(true);
   const [overlayType, setOverlayType] = useState<any>("none");
   const [overlayOpacity, setOverlayOpacity] = useState<number>(0.5);
+  const [spectrumType, setSpectrumType] = useState<"bass" | "wide">("wide");
   
   const [audioDuration, setAudioDuration] = useState<number>(30);
   const audioDurationRef = useRef<number>(30);
@@ -375,9 +376,9 @@ export const App = () => {
     lines,
     showLyrics,
     screenPulse,
-    particlePulse,
     showConstellationNames,
-    showVisualizer: true
+    showVisualizer: true,
+    spectrumType
   };
 
   return (
@@ -444,6 +445,23 @@ export const App = () => {
             </select>
           </div>
 
+          <div className="control-group">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              Spectrum
+              <span style={{ fontSize: '12px', opacity: 0.5, fontWeight: 'normal', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid currentColor', borderRadius: '50%', width: '14px', height: '14px', cursor: 'help' }} title="BASS: Visualize low frequencies.&#10;WIDE: Visualize a wide range of frequencies.">?</span>
+            </label>
+            <div className="segmented-control">
+              <button 
+                className={spectrumType === "bass" ? "active" : ""}
+                onClick={() => setSpectrumType("bass")}
+              >BASS</button>
+              <button 
+                className={spectrumType === "wide" ? "active" : ""}
+                onClick={() => setSpectrumType("wide")}
+              >WIDE</button>
+            </div>
+          </div>
+
           {layout === "constellation" && (
             <div className="toggle-group">
               <label>Show Star Names</label>
@@ -454,8 +472,8 @@ export const App = () => {
             </div>
           )}
 
-          {(layout === "bottom" || layout === "audiogram" || layout === "solidwave") && (
-            <div className="toggle-group">
+          {(layout === "bottom" || layout === "audiogram" || layout === "solidwave" || layout === "echo" || layout === "echo-solid") && (
+            <div className="toggle-group" style={{ marginBottom: '8px' }}>
               <label>Mirror Reflection</label>
               <label className="switch">
                 <input type="checkbox" checked={reflection} onChange={e => setReflection(e.target.checked)} />

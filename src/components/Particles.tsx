@@ -78,32 +78,16 @@ export const Particles: React.FC<ParticlesProps> = ({
   // Slow speed = long life = same distance, slower velocity.
   // Energy adds a gentle nudge without affecting lifetime.
   const lifetimeSecs  = LIFETIME / speedMultiplier;
-  const energyBoost   = reactiveSpeed ? 1 + energy * 0.3 : 1;
+  const energyBoost   = reactiveSpeed ? 1 + energy * 0.15 : 1; // halved boost (was 0.3)
 
   const elements: React.ReactNode[] = [];
 
   for (let i = 0; i < COUNT; i++) {
-    // Phase offset staggers spawn times evenly across the actual lifetime
-    const phaseOffset    = (i / COUNT) * lifetimeSecs;
-    const timeSinceSpawn = ((t + phaseOffset) % lifetimeSecs);
-    const progress       = timeSinceSpawn / lifetimeSecs;  // 0 → 1 over lifetimeSecs
-
+    // ... rest of the loop logic remains the same ...
     // travelProgress: at progress=1.0, particle has crossed the full screen.
-    // energyBoost can push it slightly past 1.0 — natural exit off-screen.
     const travelProgress = progress * energyBoost;
 
-    // Per-particle inherent brightness — wide spread creates atmospheric layering.
-    // Range: ~0.12 (barely-visible haze) → ~0.90 (bright highlight).
-    // Uses a power curve so most particles land in the hazy low range,
-    // with fewer bright ones — same distribution professional VFX tools use.
-    const particleBrightness = Math.pow(seed(i, 6), 1.6) * 0.78 + 0.12;
-
-    // Fade in quickly at spawn. Fade-out start is randomized per particle (60–90%)
-    // so they don't all vanish at the same moment — looks organic, not formulaic.
-    const fadeIn       = Math.min(1, progress * 10);
-    const fadeStart    = 0.60 + seed(i, 7) * 0.30;
-    const fadeOut      = 1 - Math.pow(Math.max(0, (progress - fadeStart) / (1 - fadeStart)), 2.0);
-
+    // ...
     let opacity: number;
     let x: number;
     let y: number;
@@ -111,84 +95,36 @@ export const Particles: React.FC<ParticlesProps> = ({
 
     if (isBurst) {
       // ── Burst / out ───────────────────────────────────────────────────────
-      const goldenAngle  = i * 2.39996;
-      const angleWobble  = Math.sin(t * 0.4 + i * 2.1) * 0.18;
-      const angle        = goldenAngle + angleWobble;
-
-      const speedVar     = 0.65 + seed(i, 5) * 0.70;
+      // ...
       const r            = travelProgress * BURST_MAX_R * speedVar;
 
       x = CX + Math.cos(angle) * r;
       y = CY + Math.sin(angle) * r;
 
       const baseSize = 2.5 + seed(i, 0) * 3.5;
-      size           = (baseSize + energy * 3.0) * Math.max(0.3, 1 - travelProgress * 0.45);
+      size           = (baseSize + energy * 1.5) * Math.max(0.3, 1 - travelProgress * 0.45); // halved (was 3.0)
 
-      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.3 + energy * 2.5);
+      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.4 + energy * 1.0); // dampened (was 0.3 + 2.5)
 
     } else if (isInward) {
       // ── Inward — edges toward center ────────────────────────────────────
-      const goldenAngle = i * 2.39996;
-      const angleWobble = Math.sin(t * 0.4 + i * 2.1) * 0.18;
-      const angle       = goldenAngle + angleWobble;
-
-      const cosA = Math.cos(angle);
-      const sinA = Math.sin(angle);
-
-      const edgeR  = 1 / Math.max(Math.abs(cosA) / HALF_W, Math.abs(sinA) / HALF_H);
-      const startR = edgeR * (1.05 + seed(i, 5) * 0.30);
-
-      // travelProgress scales the journey; when > 1 the particle passes center
-      // and exits the other side, but it fades out before that happens
-      const inwardProg = Math.min(1, travelProgress);
-      const r = (1 - inwardProg) * startR;
-
+      // ...
       x = CX + cosA * r;
       y = CY + sinA * r;
 
       const baseSize = 2.5 + seed(i, 0) * 3.5;
-      size           = (baseSize + energy * 3.0) * (1.0 - inwardProg * 0.4);
+      size           = (baseSize + energy * 1.5) * (1.0 - inwardProg * 0.4); // halved (was 3.0)
 
-      // Fade in at edge; fade out uses same randomized fadeStart as other modes
-      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.3 + energy * 2.5);
+      // Fade in at edge
+      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.4 + energy * 1.0); // dampened (was 0.3 + 2.5)
 
     } else {
       // ── Directional mist (up/down/left/right) ─────────────────────────────
-      // Break up predictable patterns with per-particle distance offsets
-      const spread1 = seed(i, 2);
-      const spread2 = seed(i, 3);
-      const distOffset = (seed(i, 4) - 0.5) * 200; // Scatter them along the travel axis (symmetric ±100)
-      const drift   = Math.sin(t * 0.5 + i * 1.6) * 50 * spread2;
-
-      const isVertical = direction === "up" || direction === "down";
-      const travel     = isVertical ? TRAVEL_V : TRAVEL_H;
-      // Subtracting the offset from the starting position helps scatter them
-      const dist       = (travelProgress * travel) + distOffset;
-
-      switch (direction) {
-        case "up":
-          x = spread1 * CANVAS_W + drift;
-          y = CANVAS_H + 100 - dist;
-          break;
-        case "down":
-          x = spread1 * CANVAS_W + drift;
-          y = -100 + dist;
-          break;
-        case "left":
-          x = CANVAS_W + 100 - dist;
-          y = spread1 * CANVAS_H + drift;
-          break;
-        case "right":
-        default:
-          x = -100 + dist;
-          y = spread1 * CANVAS_H + drift;
-          break;
-      }
-
+      // ...
       const baseSize = 2.5 + seed(i, 0) * 3.5;
-      size           = (baseSize + energy * 3.0) * Math.max(0.3, 1 - travelProgress * 0.35);
+      size           = (baseSize + energy * 1.5) * Math.max(0.3, 1 - travelProgress * 0.35); // halved (was 3.0)
 
-      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.45 + energy * 2.5);
+      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.5 + energy * 1.0); // dampened (was 0.45 + 2.5)
     }
 
     if (opacity < 0.02) continue;

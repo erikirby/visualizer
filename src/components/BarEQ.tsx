@@ -14,6 +14,7 @@ export interface BarEQProps {
   // ── Theme colors ──────────────────────────────────────────────────────────
   colorA?: string;      // bass / left-side color (default: hot pink #FF2D9B)
   colorB?: string;      // treble / right-side color (default: electric blue #00B4FF)
+  spectrumType?: "bass" | "wide";
 }
 
 const NUM_BARS = 64;
@@ -27,6 +28,7 @@ const MAX_DELAY_FRAMES  = 14; // max frame offset at the outermost bars
 function buildBandPeaks(
   audioData: ReturnType<typeof useAudioData>,
   fps: number,
+  spectrumType: "bass" | "wide" = "wide",
 ): number[] {
   if (!audioData) return new Array(NUM_BARS).fill(0.1);
   const total = Math.floor(audioData.durationInSeconds * fps);
@@ -41,6 +43,7 @@ function buildBandPeaks(
         smoothing: false,
       }),
       NUM_BARS,
+      spectrumType,
     ),
   );
   return Array.from({ length: NUM_BARS }, (_, i) =>
@@ -57,15 +60,16 @@ export const BarEQ: React.FC<BarEQProps> = ({
   layers     = false,
   colorA     = "#FF2D9B",
   colorB     = "#00B4FF",
+  spectrumType = "wide",
 }) => {
   const frame     = useCurrentFrame();
   const { fps }   = useVideoConfig();
   const audioData = useAudioData(audioSrc);
 
   const bandPeaks = React.useMemo(
-    () => buildBandPeaks(audioData, fps),
+    () => buildBandPeaks(audioData, fps, spectrumType),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [audioData, fps],
+    [audioData, fps, spectrumType],
   );
 
   if (!audioData) return null;
@@ -90,6 +94,7 @@ export const BarEQ: React.FC<BarEQProps> = ({
     getMusicViz(
       visualizeAudio({ fps, frame: Math.max(0, f), audioData, numberOfSamples: 256, smoothing: true }),
       NUM_BARS,
+      spectrumType,
     );
 
   const currentViz = getViz(frame);

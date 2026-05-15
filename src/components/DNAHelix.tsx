@@ -4,10 +4,9 @@ import { useAudioData, visualizeAudio } from "@remotion/media-utils";
 import { getMusicViz, getBassEnergy } from "../utils/audioColor";
 import { lerpColor } from "../utils/themes";
 
-interface DNAHelixProps {
-  audioSrc: string;
   colorA?: string;
   colorB?: string;
+  spectrumType?: "bass" | "wide";
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -34,11 +33,20 @@ function h(a: number, b: number): number {
 export const DNAHelix: React.FC<DNAHelixProps> = ({
   colorA = "#FF2D9B",
   colorB = "#00B4FF",
+  spectrumType = "wide",
 }) => {
   const frame     = useCurrentFrame();
   const { fps }   = useVideoConfig();
+  const audioData = useAudioData(audioSrc);
 
   const t = frame / fps;
+
+  // Audio reactivity
+  const viz        = audioData ? visualizeAudio({ fps, frame, audioData, numberOfSamples: 32, smoothing: true }) : [];
+  const bars       = audioData ? getMusicViz(viz as any, 32, spectrumType) : new Array(32).fill(0);
+  const bassEnergy = getBassEnergy(bars);
+  const bassScale  = 1 + bassEnergy * 0.45;
+  const energy     = bars.reduce((a, b) => a + b, 0) / bars.length;
 
   // Steady, constant spin
   const baseSpin  = 0.55;
@@ -72,8 +80,8 @@ export const DNAHelix: React.FC<DNAHelixProps> = ({
     const dist = Math.abs(frac - pulsePos);
     const influence = Math.exp(-Math.pow(dist / pulseWidth, 2));
     
-    // Purely procedural radius pulse
-    const currentRadius = RADIUS + influence * 110;
+    // Purely procedural radius pulse + Audio bass pulse
+    const currentRadius = (RADIUS + influence * 110) * bassScale;
     
     const angle = frac * ROTATIONS * Math.PI * 2 + rotTime;
     
@@ -101,7 +109,7 @@ export const DNAHelix: React.FC<DNAHelixProps> = ({
     );
 
     // Node A
-    const opA = (0.2 + pA.scale * 0.5 + influence * 0.4).toFixed(3);
+    const opA = (0.2 + pA.scale * 0.5 + influence * 0.4 + energy * 0.3).toFixed(3);
     nodes.push(
       <g key={`na${i}`} opacity={opA}>
         <circle
@@ -119,7 +127,7 @@ export const DNAHelix: React.FC<DNAHelixProps> = ({
     );
 
     // Node B
-    const opB = (0.2 + pB.scale * 0.5 + influence * 0.4).toFixed(3);
+    const opB = (0.2 + pB.scale * 0.5 + influence * 0.4 + energy * 0.3).toFixed(3);
     nodes.push(
       <g key={`nb${i}`} opacity={opB}>
         <circle

@@ -19,6 +19,7 @@ const REFL_MAX  = 90;                   // max reflection height below baseline
 function buildBandPeaks(
   audioData: ReturnType<typeof useAudioData>,
   fps: number,
+  spectrumType: "bass" | "wide" = "wide",
 ): number[] {
   if (!audioData) return new Array(NUM_BARS).fill(0.1);
   const total = Math.floor(audioData.durationInSeconds * fps);
@@ -33,6 +34,7 @@ function buildBandPeaks(
         smoothing: false,
       }),
       NUM_BARS,
+      spectrumType,
     ),
   );
   return Array.from({ length: NUM_BARS }, (_, i) =>
@@ -41,11 +43,8 @@ function buildBandPeaks(
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export interface FullWidthBarsProps {
-  audioSrc:    string;
-  colorA?:     string;
-  colorB?:     string;
   reflection?: boolean;   // mirror bars below baseline (default true)
+  spectrumType?: "bass" | "wide";
 }
 
 export const FullWidthBars: React.FC<FullWidthBarsProps> = ({
@@ -53,15 +52,16 @@ export const FullWidthBars: React.FC<FullWidthBarsProps> = ({
   colorA     = "#FF2D9B",
   colorB     = "#00B4FF",
   reflection = true,
+  spectrumType = "wide",
 }) => {
   const frame     = useCurrentFrame();
   const { fps }   = useVideoConfig();
   const audioData = useAudioData(audioSrc);
 
   const bandPeaks = React.useMemo(
-    () => buildBandPeaks(audioData, fps),
+    () => buildBandPeaks(audioData, fps, spectrumType),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [audioData, fps],
+    [audioData, fps, spectrumType],
   );
 
   if (!audioData) return null;
@@ -70,6 +70,7 @@ export const FullWidthBars: React.FC<FullWidthBarsProps> = ({
   const viz = getMusicViz(
     visualizeAudio({ fps, frame, audioData, numberOfSamples: 256, smoothing: true }),
     NUM_BARS,
+    spectrumType,
   );
 
   const bassEnergy = getBassEnergy(viz);

@@ -66,16 +66,26 @@ export function logRemap(visualization: readonly number[], numBars: number): num
  *   2. DEAD RIGHT SIDE: 40% of bars mapping to 8–22kHz silence.  Bins
  *      1–(40% of FFT) cover 0–8.8kHz; bass sits at ~50% of bars.
  */
+/**
+ * Music-optimised visualisation — replaces raw logRemap in every visualiser.
+ * Supports 'bass' (low-freq focus) and 'wide' (full-spectrum) modes.
+ */
 export function getMusicViz(
   rawFft: readonly number[],
   numBars: number,
-  scalar = 2.5,
-  treble = 1.8,
+  mode: "bass" | "wide" = "wide"
 ): number[] {
   if (rawFft.length === 0) return new Array(numBars).fill(0);
 
+  // Tuning parameters for each mode
+  // WIDE: 40% of FFT range (up to ~8.8kHz) with strong treble boost to keep the right side active.
+  // BASS: 15% of FFT range (up to ~3.3kHz) with low treble boost to emphasize the kicks/subs.
+  const maxBinPct   = mode === "wide" ? 0.40 : 0.15;
+  const trebleBoost = mode === "wide" ? 3.8  : 0.8;
+  const scalar      = 2.5;
+
   const minBin = 1;
-  const maxBin = Math.min(rawFft.length - 1, Math.floor(rawFft.length * 0.4));
+  const maxBin = Math.min(rawFft.length - 1, Math.floor(rawFft.length * maxBinPct));
   const range  = maxBin - minBin;
 
   const result: number[] = [];
@@ -86,7 +96,8 @@ export function getMusicViz(
     const hi       = Math.min(lo + 1, maxBin);
     const frac     = rawIndex - lo;
     const v        = (rawFft[lo] ?? 0) * (1 - frac) + (rawFft[hi] ?? 0) * frac;
-    const boost = scalar * (1 + Math.pow(t, 0.7) * treble);
+    
+    const boost = scalar * (1 + Math.pow(t, 0.7) * trebleBoost);
     result.push(Math.tanh(v * boost));
   }
   return result;

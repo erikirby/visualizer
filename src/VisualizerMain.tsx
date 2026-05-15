@@ -74,6 +74,7 @@ export type VisualizerProps = {
   particlePulse?: boolean;
   showConstellationNames?: boolean;
   isExporting?: boolean;
+  spectrumType?: "bass" | "wide";
 } & Record<string, unknown>;
 
 export const VisualizerMain: React.FC<VisualizerProps> = ({
@@ -111,6 +112,7 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
   particlePulse = true,
   showConstellationNames = true,
   isExporting = false,
+  spectrumType = "wide",
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -145,7 +147,7 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
      layout === "rings" || layout === "constellation" ? "in" : "out");
 
   // Shared props for bar-based layouts
-  const barProps = { reflection: effectiveReflection, waveDelay, rumble, layers, colorA, colorB };
+  const barProps = { reflection: effectiveReflection, waveDelay, rumble, layers, colorA, colorB, spectrumType };
 
   // Beat flash uses colorA so it matches the theme (e.g. green pulse for Toxic theme)
   const flashColor = colorA;
@@ -186,9 +188,9 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
       {showVisualizer && layout === "bottom"        && <BarEQ audioSrc={audioSrc as string} compact {...barProps} />}
       {showVisualizer && layout === "audiogram"     && <FullWidthBars audioSrc={audioSrc as string} reflection={effectiveReflection} colorA={colorA} colorB={colorB} />}
       {showVisualizer && layout === "solidwave"     && <SolidWave audioSrc={audioSrc as string} {...barProps} />}
-      {showVisualizer && layout === "rings"         && <FrequencyRings audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} />}
-      {showVisualizer && layout === "echo"          && <EchoPulse audioSrc={audioSrc as string} layers={layers} colorA={colorA} colorB={colorB} />}
-      {showVisualizer && layout === "echo-solid"    && <EchoPulse audioSrc={audioSrc as string} variant="solid" layers={layers} colorA={colorA} colorB={colorB} />}
+      {showVisualizer && layout === "rings"         && <FrequencyRings audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} spectrumType={spectrumType} />}
+      {showVisualizer && layout === "echo"          && <EchoPulse audioSrc={audioSrc as string} layers={layers} colorA={colorA} colorB={colorB} reflection={effectiveReflection} spectrumType={spectrumType} />}
+      {showVisualizer && layout === "echo-solid"    && <EchoPulse audioSrc={audioSrc as string} variant="solid" layers={layers} colorA={colorA} colorB={colorB} reflection={effectiveReflection} spectrumType={spectrumType} />}
       {showVisualizer && layout === "dna"           && <DNAHelix audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} />}
       {showVisualizer && layout === "constellation" && <ConstellationNet audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} seed={Math.floor((audioDuration as number) * 100)} showNames={showConstellationNames} />}
 

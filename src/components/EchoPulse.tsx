@@ -11,6 +11,8 @@ interface EchoPulseProps {
   layers?: boolean;
   colorA?: string;
   colorB?: string;
+  reflection?: boolean;
+  spectrumType?: "bass" | "wide";
 }
 
 const NUM_BARS   = 80;
@@ -73,6 +75,8 @@ export const EchoPulse: React.FC<EchoPulseProps> = ({
   layers  = false,
   colorA  = "#FF2D9B",
   colorB  = "#00B4FF",
+  reflection = false,
+  spectrumType = "wide",
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -80,22 +84,26 @@ export const EchoPulse: React.FC<EchoPulseProps> = ({
 
   if (!audioData) return null;
 
+  const vizRaw = visualizeAudio({ fps, frame, audioData, numberOfSamples: 256, smoothing: true });
   const halfBars = Math.floor(NUM_BARS / 2);
-  const rawHalf  = getMusicViz(
-    visualizeAudio({ fps, frame, audioData, numberOfSamples: 256, smoothing: true }),
-    halfBars,
-  );
-  // Mirror the bars (Treble -> Bass -> Treble) so the circle is symmetric 
-  // and both sides react fully. Because both ends are Treble (near 0 energy),
-  // they blend seamlessly without needing artificial seam smoothing.
-  const liveBars = [...rawHalf].reverse().concat(rawHalf);
+
+  // 1. Get the base spectrum (either half or full depending on reflection)
+  const rawBars = reflection
+    ? getMusicViz(vizRaw, halfBars, spectrumType)
+    : getMusicViz(vizRaw, NUM_BARS, spectrumType);
+
+  // 2. Apply mirroring if requested, otherwise use rawBars directly
+  const liveBars = reflection
+    ? [...rawBars].reverse().concat(rawBars)
+    : rawBars;
 
   const cx = CANVAS_W / 2;
   const cy = CANVAS_H / 2;
   const t  = frame / fps;
 
   const mainColor   = getCycleColor(frame, fps, 28, colorA, colorB);
-  const bassEnergyRaw = getBassEnergy(rawHalf);
+  // Always use the start of the raw spectrum for bass energy (bass is always at index 0)
+  const bassEnergyRaw = getBassEnergy(rawBars);
   // Solid mode uses a gentler glow so the diffuse halo doesn't blow out the shape
   const glowSize    = variant === "solid"
     ? 2 + bassEnergyRaw * 5

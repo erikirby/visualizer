@@ -3,10 +3,9 @@ import { useCurrentFrame, useVideoConfig } from "remotion";
 import { useAudioData, visualizeAudio } from "@remotion/media-utils";
 import { getFreqColor, getMusicViz } from "../utils/audioColor";
 
-interface FrequencyRingsProps {
-  audioSrc: string;
   colorA?: string;
   colorB?: string;
+  spectrumType?: "bass" | "wide";
 }
 
 // Six rings — each locked to one frequency band
@@ -21,6 +20,7 @@ export const FrequencyRings: React.FC<FrequencyRingsProps> = ({
   audioSrc,
   colorA = "#FF2D9B",
   colorB = "#00B4FF",
+  spectrumType = "wide",
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -32,6 +32,7 @@ export const FrequencyRings: React.FC<FrequencyRingsProps> = ({
   const raw = getMusicViz(
     visualizeAudio({ fps, frame, audioData, numberOfSamples: 256, smoothing: true }),
     NUM_VIZ,
+    spectrumType,
   );
 
   const cx = CANVAS_W / 2;
