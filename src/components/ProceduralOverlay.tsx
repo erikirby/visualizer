@@ -68,15 +68,15 @@ export const ProceduralOverlay: React.FC<ProceduralOverlayProps> = ({
 
     return (
       <AbsoluteFill style={{ pointerEvents: "none", opacity: op }}>
+        {/* SVG is 120% of the frame, offset -10% on each side.
+            Its viewport boundary falls outside the visible area so the
+            gradient reaches every pixel edge with no internal hard line. */}
         <svg
-          width="100%" height="100%"
-          viewBox="0 0 100 100"
+          viewBox="-10 -10 120 120"
           preserveAspectRatio="none"
-          overflow="visible"
-          style={{ position: "absolute", inset: 0 }}
+          style={{ position: "absolute", left: "-10%", top: "-10%", width: "120%", height: "120%" }}
         >
           <defs>
-            {/* userSpaceOnUse: cx/cy/r are direct 0-100 coords, unaffected by rect size */}
             <radialGradient id="po-leak-a" gradientUnits="userSpaceOnUse" cx={cx} cy={cy} r={r}>
               <stop offset="0%"   stopColor={colorA} stopOpacity="0.9"  />
               <stop offset="40%"  stopColor={colorA} stopOpacity="0.4"  />
@@ -88,9 +88,8 @@ export const ProceduralOverlay: React.FC<ProceduralOverlayProps> = ({
               <stop offset="100%" stopColor={colorB} stopOpacity="0"    />
             </radialGradient>
           </defs>
-          {/* Oversized rects so fill renders in the overflow area beyond the viewport */}
-          <rect x="-50" y="-50" width="200" height="200" fill="url(#po-leak-a)" />
-          <rect x="-50" y="-50" width="200" height="200" fill="url(#po-leak-b)" />
+          <rect x="-10" y="-10" width="120" height="120" fill="url(#po-leak-a)" />
+          <rect x="-10" y="-10" width="120" height="120" fill="url(#po-leak-b)" />
         </svg>
       </AbsoluteFill>
     );
