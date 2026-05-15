@@ -74,22 +74,23 @@ export const Particles: React.FC<ParticlesProps> = ({
   const isInward  = direction === "in";
   const COUNT     = Math.round(((isBurst || isInward) ? BURST_COUNT : MIST_COUNT) * countMultiplier);
 
-  // Speed multiplier scales travel progress — NOT the lifetime.
-  // Audio adds a very gentle nudge (0.3) so beats are felt but not violent.
-  const speedMult = (reactiveSpeed ? 1 + energy * 0.3 : 1) * speedMultiplier;
+  // Lifetime scales inversely with speed so particles ALWAYS cross the full screen.
+  // Slow speed = long life = same distance, slower velocity.
+  // Energy adds a gentle nudge without affecting lifetime.
+  const lifetimeSecs  = LIFETIME / speedMultiplier;
+  const energyBoost   = reactiveSpeed ? 1 + energy * 0.3 : 1;
 
   const elements: React.ReactNode[] = [];
 
   for (let i = 0; i < COUNT; i++) {
-    // Phase offset staggers spawn times evenly across the fixed lifetime
-    const phaseOffset    = (i / COUNT) * LIFETIME;
-    const timeSinceSpawn = ((t + phaseOffset) % LIFETIME);
-    const progress       = timeSinceSpawn / LIFETIME;  // 0 → 1 over LIFETIME
+    // Phase offset staggers spawn times evenly across the actual lifetime
+    const phaseOffset    = (i / COUNT) * lifetimeSecs;
+    const timeSinceSpawn = ((t + phaseOffset) % lifetimeSecs);
+    const progress       = timeSinceSpawn / lifetimeSecs;  // 0 → 1 over lifetimeSecs
 
-    // Travel progress — NO Math.min(1,...) clamp!
-    // When speedMult > 1, travelProgress exceeds 1.0 and the particle
-    // naturally exits off-screen. No hard stop line ever.
-    const travelProgress = progress * speedMult;
+    // travelProgress: at progress=1.0, particle has crossed the full screen.
+    // energyBoost can push it slightly past 1.0 — natural exit off-screen.
+    const travelProgress = progress * energyBoost;
 
     // Per-particle inherent brightness — wide spread creates atmospheric layering.
     // Range: ~0.12 (barely-visible haze) → ~0.90 (bright highlight).
@@ -97,9 +98,11 @@ export const Particles: React.FC<ParticlesProps> = ({
     // with fewer bright ones — same distribution professional VFX tools use.
     const particleBrightness = Math.pow(seed(i, 6), 1.6) * 0.78 + 0.12;
 
-    // Fade in quickly at spawn, fade out over last 20% of lifetime
-    const fadeIn  = Math.min(1, progress * 10);
-    const fadeOut = 1 - Math.pow(Math.max(0, (progress - 0.80) / 0.20), 2.0);
+    // Fade in quickly at spawn. Fade-out start is randomized per particle (60–90%)
+    // so they don't all vanish at the same moment — looks organic, not formulaic.
+    const fadeIn       = Math.min(1, progress * 10);
+    const fadeStart    = 0.60 + seed(i, 7) * 0.30;
+    const fadeOut      = 1 - Math.pow(Math.max(0, (progress - fadeStart) / (1 - fadeStart)), 2.0);
 
     let opacity: number;
     let x: number;
@@ -146,9 +149,8 @@ export const Particles: React.FC<ParticlesProps> = ({
       const baseSize = 1.8 + seed(i, 0) * 2.5;
       size           = (baseSize + energy * 2.5) * (1.0 - inwardProg * 0.4);
 
-      // Fade in at edge; start fading at 65% travel, gone by 85%
-      const fadeOut_in = 1 - Math.pow(Math.max(0, (progress - 0.65) / 0.20), 1.5);
-      opacity = fadeIn * fadeOut_in * particleBrightness * Math.min(1, 0.3 + energy * 2.5);
+      // Fade in at edge; fade out uses same randomized fadeStart as other modes
+      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.3 + energy * 2.5);
 
     } else {
       // ── Directional mist (up/down/left/right) ─────────────────────────────

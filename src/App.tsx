@@ -154,18 +154,21 @@ export const App = () => {
   const [themeId, setThemeId] = useState<number>(1);
   const [showParticles, setShowParticles] = useState<boolean>(false);
   const [particleDirection, setParticleDirection] = useState<any>("auto");
-  const [particleSpeed, setParticleSpeed] = useState<number>(1.0);
+  const [particleSpeed, setParticleSpeed] = useState<number>(0.3);
   const [particleCount, setParticleCount] = useState<number>(1.0);
 
   // Sensible particle density per layout — applied when particles are first turned on
   const PARTICLE_COUNT_DEFAULTS: Partial<Record<VisualizerLayout, number>> = {
-    bottom: 0.5, audiogram: 0.5, solidwave: 1.0,
-    rings: 0.75, echo: 1.25, "echo-solid": 1.25,
-    dna: 0.5, constellation: 0.75,
+    bottom: 2.0, audiogram: 2.0, solidwave: 2.0,
+    rings: 1.5, echo: 2.5, "echo-solid": 2.5,
+    dna: 1.5, constellation: 2.0,
   };
   const handleToggleParticles = (on: boolean) => {
     setShowParticles(on);
-    if (on) setParticleCount(PARTICLE_COUNT_DEFAULTS[layout] ?? 1.0);
+    if (on) {
+      setParticleCount(PARTICLE_COUNT_DEFAULTS[layout] ?? 2.0);
+      setParticleSpeed(0.3);
+    }
   };
   const [reflection, setReflection] = useState<boolean>(true);
   const [showTitles, setShowTitles] = useState<boolean>(true);
@@ -474,8 +477,8 @@ export const App = () => {
                 </select>
               </div>
               <div className="control-group">
-                <label>Speed — {particleSpeed.toFixed(1)}x</label>
-                <input type="range" min="0.25" max="3" step="0.25" value={particleSpeed} onChange={e => setParticleSpeed(Number(e.target.value))}
+                <label>Speed — {particleSpeed.toFixed(2)}x</label>
+                <input type="range" min="0.05" max="3" step="0.05" value={particleSpeed} onChange={e => setParticleSpeed(Number(e.target.value))}
                   style={{ width: '100%', accentColor: 'var(--accent-pink)', cursor: 'pointer' }} />
               </div>
               <div className="control-group">
