@@ -9,6 +9,11 @@ import { forceAlign, AlignWord } from './utils/aligner';
 // @ts-ignore - Vite specific worker import
 import WhisperWorker from './whisper.worker.ts?worker';
 
+// GA4 event helper — silently no-ops if gtag isn't loaded
+function track(event: string, params?: Record<string, string | number | boolean>) {
+  try { (window as any).gtag?.('event', event, params); } catch {}
+}
+
 // Helper function to decode audio blob into Float32Array at 16kHz (Whisper format)
 async function decodeAudio(url: string): Promise<Float32Array> {
   const response = await fetch(url);
@@ -69,6 +74,8 @@ export const App = () => {
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<string>("");
   const worker = useRef<Worker | null>(null);
+
+  useEffect(() => { track('app_opened'); }, []);
 
   useEffect(() => {
     worker.current = new WhisperWorker();
@@ -235,6 +242,7 @@ export const App = () => {
   const handleSync = async () => {
     if (!audioUrl || !rawLyrics.trim()) return;
     const lyricsSnapshot = rawLyricsRef.current;
+    track('sync_started');
     setIsSyncing(true);
     setSyncStatus("Decoding Audio...");
     try {
@@ -247,6 +255,14 @@ export const App = () => {
   };
 
   const handleRender = async () => {
+    track('export_started', {
+      layout,
+      theme_id: themeId,
+      background_type: bgIsVideo ? 'video' : 'image',
+      particles_on: showParticles,
+      lyrics_on: showLyrics,
+      overlay: overlayType ?? 'none',
+    });
     setIsRendering(true);
     setProgress(0);
     try {
@@ -277,6 +293,7 @@ export const App = () => {
       });
 
       const blob = await result.getBlob();
+      track('export_completed', { layout, theme_id: themeId });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
