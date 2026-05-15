@@ -1,0 +1,91 @@
+import React from "react";
+import { AbsoluteFill, useCurrentFrame } from "remotion";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+export type ProceduralOverlayType =
+  | "none"         // No effect
+  | "scanlines"    // CRT horizontal scan lines
+  | "light-leak";   // Drifting radial gradient burst using theme colors
+
+interface ProceduralOverlayProps {
+  type:      ProceduralOverlayType;
+  opacity?:  number;    // Overall intensity override
+  colorA?:   string;    // Theme colorA
+  colorB?:   string;    // Theme colorB
+}
+
+const W = 1920;
+const H = 1080;
+
+export const ProceduralOverlay: React.FC<ProceduralOverlayProps> = ({
+  type,
+  opacity,
+  colorA = "#FF2D9B",
+  colorB = "#00B4FF",
+}) => {
+  const frame = useCurrentFrame();
+
+  if (type === "none") return null;
+
+  // ── Scan Lines ──────────────────────────────────────────────────────────────
+  if (type === "scanlines") {
+    const op = opacity ?? 0.55;
+
+    return (
+      <AbsoluteFill style={{ pointerEvents: "none", opacity: op }}>
+        <svg
+          width="100%" height="100%"
+          viewBox={`0 0 ${W} ${H}`}
+          style={{ position: "absolute", inset: 0 }}
+        >
+          <defs>
+            <pattern id="po-scan-pat" x="0" y="0" width={W} height="4" patternUnits="userSpaceOnUse">
+              <line x1="0" y1="0" x2={W} y2="0" stroke="rgba(0,0,0,0.75)" strokeWidth="1.5" />
+            </pattern>
+          </defs>
+          <rect width={W} height={H} fill="url(#po-scan-pat)" />
+        </svg>
+      </AbsoluteFill>
+    );
+  }
+
+  // ── Light Leak ──────────────────────────────────────────────────────────────
+  if (type === "light-leak") {
+    const t  = frame / 30;
+    const cx = 50 + 28 * Math.sin(t * 0.17);
+    const cy = 40 + 22 * Math.cos(t * 0.11 + 1.2);
+    const r  = 55 + 12 * Math.sin(t * 0.14);
+    const cx2 = 80 + 15 * Math.cos(t * 0.09 + 2.5);
+    const cy2 = 65 + 18 * Math.sin(t * 0.13);
+
+    const op = opacity ?? 0.38;
+
+    return (
+      <AbsoluteFill style={{ pointerEvents: "none", mixBlendMode: "screen", opacity: op }}>
+        <svg
+          width="100%" height="100%"
+          viewBox={`0 0 100 100`}
+          preserveAspectRatio="none"
+          style={{ position: "absolute", inset: 0 }}
+        >
+          <defs>
+            <radialGradient id="po-leak-a" cx={`${cx}%`} cy={`${cy}%`} r={`${r}%`}>
+              <stop offset="0%"   stopColor={colorA} stopOpacity="0.85" />
+              <stop offset="35%"  stopColor={colorA} stopOpacity="0.30" />
+              <stop offset="100%" stopColor={colorA} stopOpacity="0"    />
+            </radialGradient>
+            <radialGradient id="po-leak-b" cx={`${cx2}%`} cy={`${cy2}%`} r="38%">
+              <stop offset="0%"   stopColor={colorB} stopOpacity="0.55" />
+              <stop offset="50%"  stopColor={colorB} stopOpacity="0.15" />
+              <stop offset="100%" stopColor={colorB} stopOpacity="0"    />
+            </radialGradient>
+          </defs>
+          <rect width="100" height="100" fill="url(#po-leak-a)" />
+          <rect width="100" height="100" fill="url(#po-leak-b)" />
+        </svg>
+      </AbsoluteFill>
+    );
+  }
+
+  return null;
+};
