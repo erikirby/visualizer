@@ -74,7 +74,8 @@ export const ProceduralOverlay: React.FC<ProceduralOverlayProps> = ({
         <svg
           viewBox="-10 -10 120 120"
           preserveAspectRatio="none"
-          style={{ position: "absolute", left: "-10%", top: "-10%", width: "120%", height: "120%" }}
+          overflow="visible"
+          style={{ position: "absolute", inset: "-10%" }}
         >
           <defs>
             <radialGradient id="po-leak-a" gradientUnits="userSpaceOnUse" cx={cx} cy={cy} r={r}>
