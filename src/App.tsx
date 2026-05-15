@@ -217,8 +217,6 @@ export const App = () => {
   const [showHelp, setShowHelp] = useState(false);
   const [canExport, setCanExport] = useState<boolean | null>(null);
   const [audioReady, setAudioReady] = useState(false);
-  const [showSetupTip, setShowSetupTip] = useState(() => !localStorage.getItem('kv-setup-dismissed'));
-  const dismissSetupTip = () => { localStorage.setItem('kv-setup-dismissed', '1'); setShowSetupTip(false); };
 
 
 
@@ -335,8 +333,6 @@ export const App = () => {
         setRenderStatus("Rendering 0%");
       }
 
-      const isVideoBg = bgIsVideo && backgroundUrl?.startsWith("blob:");
-
       const result = await renderMediaOnWeb({
         composition: {
           component: VisualizerMain,
@@ -350,9 +346,10 @@ export const App = () => {
         inputProps: { ...inputProps, isExporting: true },
         container: "mp4",
         videoBitrate: 25_000_000,
-        // Image backgrounds use allowHtmlInCanvas (screen capture pipeline).
-        // Video backgrounds use the internal renderer — frames are pre-extracted JPEGs.
-        allowHtmlInCanvas: !isVideoBg,
+        // Internal renderer only — no allowHtmlInCanvas.
+        // Image BGs: Remotion's <Img> works natively with blob URLs.
+        // Video BGs: pre-extracted JPEG frames fed via <Img>.
+        // allowHtmlInCanvas:true breaks SVG visualizer capture and is not needed.
         onProgress: ({ progress }) => setRenderStatus(`Rendering ${Math.round(progress * 100)}%`),
       });
 
@@ -390,6 +387,7 @@ export const App = () => {
     particleDirection,
     particleSpeed,
     particleCount,
+    particlePulse,
     themeId,
     overlayType,
     overlayOpacity,
@@ -701,15 +699,6 @@ export const App = () => {
         </div>
 
         <div className="sidebar-footer">
-          {showSetupTip && (
-            <div className="setup-tip">
-              <span>
-                💡 One-time Chrome setup improves image export quality.{" "}
-                <button onClick={() => setShowHelp(true)} className="setup-tip-link">Details</button>
-              </span>
-              <button onClick={dismissSetupTip} className="setup-tip-dismiss" title="Dismiss">✕</button>
-            </div>
-          )}
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <button
               className="primary-button"
@@ -744,11 +733,8 @@ export const App = () => {
             <button onClick={() => setShowHelp(false)} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", color: "var(--text-secondary)", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
             <h2 style={{ fontFamily: "Syne, sans-serif", fontSize: 22, fontWeight: 700, background: "linear-gradient(90deg, #FF2D9B, #00B4FF)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", marginBottom: 8 }}>Kirbai Vision</h2>
             <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 12 }}>Create a music visualizer in 4 steps.</p>
-            <p style={{ fontSize: 12, background: "rgba(255,180,0,0.08)", border: "1px solid rgba(255,180,0,0.2)", borderRadius: 8, padding: "8px 12px", color: "rgba(255,200,80,0.9)", marginBottom: 10, lineHeight: 1.5 }}>
+            <p style={{ fontSize: 12, background: "rgba(255,180,0,0.08)", border: "1px solid rgba(255,180,0,0.2)", borderRadius: 8, padding: "8px 12px", color: "rgba(255,200,80,0.9)", marginBottom: 20, lineHeight: 1.5 }}>
               ⚠ <strong>Export requires Chrome or Edge.</strong> Safari and Firefox do not support MP4 export — you'll get an error. Preview works in any browser.
-            </p>
-            <p style={{ fontSize: 12, background: "rgba(255,180,0,0.08)", border: "1px solid rgba(255,180,0,0.2)", borderRadius: 8, padding: "8px 12px", color: "rgba(255,200,80,0.9)", marginBottom: 20, lineHeight: 1.6 }}>
-              ⚠ <strong>One-time setup for best export quality.</strong> In Chrome, paste <span style={{ fontFamily: "monospace", background: "rgba(0,0,0,0.2)", padding: "0 4px", borderRadius: 3 }}>chrome://flags/#canvas-draw-element</span> into your address bar → set <strong>HTML-in-Canvas</strong> to <strong>Enabled</strong> → relaunch Chrome. Edge users use <span style={{ fontFamily: "monospace", background: "rgba(0,0,0,0.2)", padding: "0 4px", borderRadius: 3 }}>edge://flags/#canvas-draw-element</span> instead. Only needs to be done once.
             </p>
             {[
               { n: "1", title: "Upload your audio", body: "MP3 or WAV, up to 200MB. The preview activates once both audio and a background are loaded." },
@@ -764,9 +750,6 @@ export const App = () => {
                 </div>
               </div>
             ))}
-            <p style={{ fontSize: 12, color: "var(--text-secondary)", borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: 16, lineHeight: 1.6, marginTop: 4 }}>
-              ✦ <strong style={{ color: "var(--text-primary)" }}>Tip:</strong> If you're exporting with a static image background, enabling HTML-in-Canvas (see the setup note above) can improve export quality slightly. This setting has no effect on video background exports.
-            </p>
           </div>
         </div>
       )}

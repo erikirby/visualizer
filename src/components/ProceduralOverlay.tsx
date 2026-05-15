@@ -51,12 +51,17 @@ export const ProceduralOverlay: React.FC<ProceduralOverlayProps> = ({
 
   // ── Light Leak ──────────────────────────────────────────────────────────────
   if (type === "light-leak") {
-    const t  = frame / 30;
-    const cx = 50 + 28 * Math.sin(t * 0.17);
-    const cy = 40 + 22 * Math.cos(t * 0.11 + 1.2);
-    const r  = 55 + 12 * Math.sin(t * 0.14);
-    const cx2 = 80 + 15 * Math.cos(t * 0.09 + 2.5);
-    const cy2 = 65 + 18 * Math.sin(t * 0.13);
+    const t = frame / 30;
+
+    // Blob A: anchored upper-left, drifts gently
+    const cx = 18 + 28 * Math.sin(t * 0.17);          // 18–46%
+    const cy = 12 + 24 * Math.cos(t * 0.11 + 1.2);    // 12–36%
+    const r  = 88 + 12 * Math.sin(t * 0.14);           // 76–100%
+
+    // Blob B: always anchored to opposite corner (lower-right)
+    const cx2 = 82 - 22 * Math.cos(t * 0.09 + 2.5);   // 60–104%
+    const cy2 = 85 - 20 * Math.sin(t * 0.13);          // 65–105%
+    const r2  = 78 + 10 * Math.cos(t * 0.12 + 0.8);   // 68–88%
 
     const op = opacity ?? 0.48;
 
@@ -64,19 +69,19 @@ export const ProceduralOverlay: React.FC<ProceduralOverlayProps> = ({
       <AbsoluteFill style={{ pointerEvents: "none", opacity: op }}>
         <svg
           width="100%" height="100%"
-          viewBox={`0 0 100 100`}
+          viewBox="0 0 100 100"
           preserveAspectRatio="none"
           style={{ position: "absolute", inset: 0 }}
         >
           <defs>
             <radialGradient id="po-leak-a" cx={`${cx}%`} cy={`${cy}%`} r={`${r}%`}>
-              <stop offset="0%"   stopColor={colorA} stopOpacity="0.85" />
-              <stop offset="35%"  stopColor={colorA} stopOpacity="0.30" />
+              <stop offset="0%"   stopColor={colorA} stopOpacity="0.9"  />
+              <stop offset="40%"  stopColor={colorA} stopOpacity="0.4"  />
               <stop offset="100%" stopColor={colorA} stopOpacity="0"    />
             </radialGradient>
-            <radialGradient id="po-leak-b" cx={`${cx2}%`} cy={`${cy2}%`} r="38%">
-              <stop offset="0%"   stopColor={colorB} stopOpacity="0.55" />
-              <stop offset="50%"  stopColor={colorB} stopOpacity="0.15" />
+            <radialGradient id="po-leak-b" cx={`${cx2}%`} cy={`${cy2}%`} r={`${r2}%`}>
+              <stop offset="0%"   stopColor={colorB} stopOpacity="0.75" />
+              <stop offset="45%"  stopColor={colorB} stopOpacity="0.28" />
               <stop offset="100%" stopColor={colorB} stopOpacity="0"    />
             </radialGradient>
           </defs>
