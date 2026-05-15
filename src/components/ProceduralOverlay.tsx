@@ -53,15 +53,16 @@ export const ProceduralOverlay: React.FC<ProceduralOverlayProps> = ({
   if (type === "light-leak") {
     const t = frame / 30;
 
-    // Blob A: anchored upper-left, drifts gently
-    const cx = 18 + 28 * Math.sin(t * 0.17);          // 18–46%
-    const cy = 12 + 24 * Math.cos(t * 0.11 + 1.2);    // 12–36%
-    const r  = 88 + 12 * Math.sin(t * 0.14);           // 76–100%
+    // Blob A: drifts freely across the frame
+    const cx = 50 + 30 * Math.sin(t * 0.17);
+    const cy = 42 + 26 * Math.cos(t * 0.11 + 1.2);
+    const r  = 85 + 12 * Math.sin(t * 0.14);
 
-    // Blob B: always anchored to opposite corner (lower-right)
-    const cx2 = 82 - 22 * Math.cos(t * 0.09 + 2.5);   // 60–104%
-    const cy2 = 85 - 20 * Math.sin(t * 0.13);          // 65–105%
-    const r2  = 78 + 10 * Math.cos(t * 0.12 + 0.8);   // 68–88%
+    // Blob B: same frequencies but π phase-shifted so it's always opposite A,
+    // plus slightly different rates so the motion feels organic, not mechanical
+    const cx2 = 50 + 34 * Math.sin(t * 0.13 + Math.PI);
+    const cy2 = 56 + 28 * Math.cos(t * 0.09 + Math.PI + 0.8);
+    const r2  = 78 + 12 * Math.cos(t * 0.16 + 0.5);
 
     const op = opacity ?? 0.48;
 

@@ -67,10 +67,10 @@ export const Particles: React.FC<ParticlesProps> = ({
   const isInward  = direction === "in";
   const COUNT     = Math.round(((isBurst || isInward) ? BURST_COUNT : MIST_COUNT) * countMultiplier);
 
-  const lifetimeSecs   = LIFETIME / speedMultiplier;
-  const energyBoost    = reactiveSpeed ? 1 + energy * 0.35 : 1;
-  const energySize     = reactiveSpeed ? energy * 0.7 : 0;
-  const energyOpacity  = reactiveSpeed ? energy * 0.5 : 0;
+  const lifetimeSecs  = LIFETIME / speedMultiplier;
+  const energyBoost   = reactiveSpeed ? 1 + energy * 0.07 : 1;
+  const energySize    = reactiveSpeed ? energy * 0.7 : 0;
+  const energyOpacity = reactiveSpeed ? energy * 0.5 : 0;
 
   const elements: React.ReactNode[] = [];
 
