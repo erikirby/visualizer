@@ -214,12 +214,6 @@ export const App = () => {
   const [audioReady, setAudioReady] = useState(false);
 
   useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
-    }
-  }, []);
-
-  useEffect(() => {
     canRenderMediaOnWeb({ container: "mp4", width: 1920, height: 1080 })
       .then(({ canRender }) => setCanExport(canRender));
   }, []);
@@ -247,13 +241,7 @@ export const App = () => {
       // Register the file with the Service Worker so it can be served at
       // /video-proxy/{id} with proper HTTP Range responses — required for
       // @remotion/media Video to seek frame-accurately.
-      const id = crypto.randomUUID();
-      const proxyUrl = `/video-proxy/${id}`;
-      navigator.serviceWorker.ready.then((reg) => {
-        const channel = new MessageChannel();
-        channel.port1.onmessage = () => setBackgroundUrl(proxyUrl);
-        reg.active?.postMessage({ type: "register-blob", id, blob: file }, [channel.port2]);
-      });
+      setBackgroundUrl(URL.createObjectURL(file));
       const vid = document.createElement("video");
       vid.preload = "metadata";
       vid.onloadedmetadata = () => {

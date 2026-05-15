@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
   AbsoluteFill,
   Img,
@@ -8,8 +8,9 @@ import {
   staticFile,
   useCurrentFrame,
   useVideoConfig,
+  delayRender,
+  continueRender,
 } from "remotion";
-import { Video } from "@remotion/media";
 
 interface VisualBackgroundProps {
   bassScale?: number;
@@ -29,6 +30,50 @@ const VIDEO_FILL_STYLE: React.CSSProperties = {
   objectPosition: "center center",
 };
 
+// Plain <video> element with delayRender so the web renderer waits for the
+// correct frame to be seeked before taking a screenshot.
+const SeekableVideo: React.FC<{ src: string; frameTime: number }> = ({ src, frameTime }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const handleRef = useRef<ReturnType<typeof delayRender> | null>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (Math.abs(video.currentTime - frameTime) < 0.002) return;
+
+    handleRef.current = delayRender("video-bg-seek");
+    const handle = handleRef.current;
+
+    const cleanup = () => {
+      video.removeEventListener("seeked", onSeeked);
+      clearTimeout(timeout);
+    };
+    const onSeeked = () => {
+      cleanup();
+      continueRender(handle);
+    };
+    const timeout = setTimeout(() => {
+      cleanup();
+      continueRender(handle);
+    }, 3000);
+
+    video.addEventListener("seeked", onSeeked);
+    video.currentTime = frameTime;
+
+    return cleanup;
+  }, [frameTime]);
+
+  return (
+    <video
+      ref={videoRef}
+      src={src}
+      muted
+      playsInline
+      style={{ ...VIDEO_FILL_STYLE, position: "absolute", inset: 0 }}
+    />
+  );
+};
 
 export const VisualBackground: React.FC<VisualBackgroundProps> = ({
   bassScale = 1,
@@ -43,7 +88,7 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
 
   const src     = backgroundSrc ?? staticFile("background.png");
   const isVideo = bgIsVideo === true || bgLoopType !== undefined || VIDEO_EXT_RE.test(src);
-  const isUserUpload = src.startsWith("/video-proxy/");
+  const isBlob  = src.startsWith("blob:");
 
   const t = frame / fps;
 
@@ -57,19 +102,15 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
   const buildVideoNode = (): React.ReactNode => {
     if (!isVideo) return null;
 
-    if (isUserUpload) {
-      // Served via SW proxy with Range support — @remotion/media Video can
-      // seek frame-accurately in both preview and export.
-      if (bgVideoDurationInFrames) {
-        return (
-          <Loop durationInFrames={bgVideoDurationInFrames}>
-            <Video src={src} muted style={VIDEO_FILL_STYLE} />
-          </Loop>
-        );
-      }
-      return <Video src={src} muted style={VIDEO_FILL_STYLE} />;
+    // User-uploaded blob URL: use a plain <video> element with delayRender so
+    // the web renderer waits for each frame to be seeked before screenshotting.
+    if (isBlob) {
+      const loopFrames = bgVideoDurationInFrames ?? totalFrames;
+      const frameTime  = (frame % loopFrames) / fps;
+      return <SeekableVideo src={src} frameTime={frameTime} />;
     }
 
+    // Static asset videos (built-in presets)
     if (bgLoopType === "pingpong" && bgVideoDurationInFrames && bgReversedSrc) {
       const numLoops = Math.ceil(totalFrames / bgVideoDurationInFrames) + 1;
       return (
