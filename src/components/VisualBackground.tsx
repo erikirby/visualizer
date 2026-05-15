@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import {
   AbsoluteFill,
   Img,
@@ -30,17 +30,35 @@ const VIDEO_FILL_STYLE: React.CSSProperties = {
   objectPosition: "center center",
 };
 
-// Preview: plain <video> plays normally in the Remotion Player.
-const BlobVideoPreview: React.FC<{ src: string }> = ({ src }) => (
-  <video
-    src={src}
-    autoPlay
-    muted
-    loop
-    playsInline
-    style={{ ...VIDEO_FILL_STYLE, position: "absolute", inset: 0 }}
-  />
-);
+// Preview: syncs play/pause with the Remotion Player's playback state.
+const BlobVideoPreview: React.FC<{ src: string }> = ({ src }) => {
+  const frame = useCurrentFrame();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const prevFrameRef = useRef(frame);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const isAdvancing = frame !== prevFrameRef.current;
+    prevFrameRef.current = frame;
+    if (isAdvancing) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  });
+
+  return (
+    <video
+      ref={videoRef}
+      src={src}
+      muted
+      loop
+      playsInline
+      style={{ ...VIDEO_FILL_STYLE, position: "absolute", inset: 0 }}
+    />
+  );
+};
 
 // Export: uses pre-extracted JPEG frames — pure internal Remotion render, no screen capture.
 const BlobVideoFrame: React.FC<{ src: string; durationInFrames: number }> = ({ src, durationInFrames }) => {

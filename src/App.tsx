@@ -645,6 +645,18 @@ export const App = () => {
               <option value="light-leak">Light Leak</option>
             </select>
           </div>
+
+          {overlayType === "light-leak" && (
+            <div className="control-group">
+              <label>Intensity <span style={{ opacity: 0.6 }}>{Math.round(overlayOpacity * 100)}%</span></label>
+              <input
+                type="range" min={0} max={1} step={0.01}
+                value={overlayOpacity}
+                onChange={e => setOverlayOpacity(parseFloat(e.target.value))}
+                className="range-input"
+              />
+            </div>
+          )}
         </div>
 
         <div className="sidebar-footer">
