@@ -116,7 +116,8 @@ export const BarEQ: React.FC<BarEQProps> = ({
     // Rumble: deterministic noise so Remotion's frame-parallel render is safe
     const rumbleNoise = rumble ? Math.sin(frame * 13.7 + i * 3.9) * 0.04 : 0;
     const ambient     = 0.015 + 0.015 * Math.sin(t * 3 + i * 0.45);
-    return Math.max(ambient, Math.min(1, normed + rumbleNoise));
+    const v = normed + rumbleNoise;
+    return Math.max(ambient, v <= 0.72 ? v : 0.72 + (v - 0.72) * 0.12);
   });
 
   const bassEnergy = visualization.slice(0, 4).reduce((a: number, b: number) => a + b, 0) / 4;

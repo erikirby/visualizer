@@ -86,8 +86,9 @@ export function getMusicViz(
     const hi       = Math.min(lo + 1, maxBin);
     const frac     = rawIndex - lo;
     const v        = (rawFft[lo] ?? 0) * (1 - frac) + (rawFft[hi] ?? 0) * frac;
-    const boost    = scalar * (1 + Math.pow(t, 0.7) * treble);
-    result.push(Math.min(1, v * boost));
+    const boost = scalar * (1 + Math.pow(t, 0.7) * treble);
+    const bv    = v * boost;
+    result.push(bv <= 0.72 ? bv : 0.72 + (bv - 0.72) * 0.12);
   }
   return result;
 }
