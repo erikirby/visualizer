@@ -25,7 +25,7 @@ const ECHO_COUNT = 5;
 const ECHO_GAP   = 7;
 
 // Solid variant is scaled down so it doesn't fill the full frame
-const SOLID_BAR_SCALE = 0.60;  // max radius = 200 + 400*0.6 = 440px
+const SOLID_BAR_SCALE = 0.85;  // increased from 0.60 for more energy
 
 // tanh is applied upstream in getMusicViz — pass through directly
 function soft(v: number): number { return v; }
@@ -208,18 +208,17 @@ export const EchoPulse: React.FC<EchoPulseProps> = ({
           <stop offset="0%"   stopColor="rgba(8,8,24,0.55)" />
           <stop offset="100%" stopColor="rgba(8,8,24,0)"    />
         </radialGradient>
-        {/* Solid variant gradient — anchored to screen space so color stays
-            fixed as the shape rotates, creating a dynamic color-shift sweep */}
+        {/* Solid variant gradient — anchored to screen space so colors sweep through the shape as it rotates */}
         {variant === "solid" && (
-          <radialGradient
+          <linearGradient
             id="ep-solid-grad"
-            cx={cx} cy={cy}
-            r={INNER_R + MAX_BAR_H}
+            x1={cx - 500} y1={cy}
+            x2={cx + 500} y2={cy}
             gradientUnits="userSpaceOnUse"
           >
-            <stop offset="0%"   stopColor={colorA} stopOpacity={0.90} />
-            <stop offset="100%" stopColor={colorB} stopOpacity={0.85} />
-          </radialGradient>
+            <stop offset="0%"   stopColor={colorA} stopOpacity={0.95} />
+            <stop offset="100%" stopColor={colorB} stopOpacity={0.90} />
+          </linearGradient>
         )}
       </defs>
 
