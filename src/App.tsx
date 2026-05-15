@@ -433,11 +433,6 @@ export const App = () => {
               <span className="file-upload-text">{backgroundName || "Upload Image/Video"}</span>
               <input type="file" accept="image/*,video/*" onChange={handleBackgroundUpload} />
             </label>
-            {bgIsVideo && (
-              <p style={{ fontSize: "11px", color: "var(--text-muted, #888)", marginTop: "6px" }}>
-                Video backgrounds will take longer to render.
-              </p>
-            )}
           </div>
 
           <div className="section-title">2. Visual Design</div>
@@ -645,7 +640,7 @@ export const App = () => {
               { n: "1", title: "Upload your audio", body: "MP3 or WAV, up to 200MB. The preview activates once both audio and a background are loaded." },
               { n: "2", title: "Upload a background", body: "Any image or video. If your video is shorter than the audio, it will loop continuously to fill the full length." },
               { n: "3", title: "Style it", body: "Pick a visualizer layout and theme. Toggle particles, screen pulse, and overlays. Use Quick Start presets to get something great fast." },
-              { n: "4", title: "Lyrics (optional) & export", body: "Paste lyrics and hit Sync — AI times them to the audio automatically. Each line break becomes one lyric line. Bracket tags like [Verse] and [Chorus] are stripped automatically, so copying from Suno works perfectly. If the timing is off, edit your lyrics and hit Sync again — you can re-sync as many times as you need. When you're happy, hit Export MP4 (Chrome or Edge only). Video backgrounds will take longer to render than images." },
+              { n: "4", title: "Lyrics (optional) & export", body: "Paste lyrics and hit Sync — AI times them to the audio automatically. Each line break becomes one lyric line. Bracket tags like [Verse] and [Chorus] are stripped automatically, so copying from Suno works perfectly. If the timing is off, edit your lyrics and hit Sync again — you can re-sync as many times as you need. When you're happy, hit Export MP4 (Chrome or Edge only). Use the 5s Test button first to check your settings before committing to a full render." },
             ].map(step => (
               <div key={step.n} style={{ display: "flex", gap: 16, marginBottom: 20 }}>
                 <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg, #FF2D9B, #7b2fff)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, flexShrink: 0, marginTop: 2 }}>{step.n}</div>
@@ -656,7 +651,7 @@ export const App = () => {
               </div>
             ))}
             <p style={{ fontSize: 12, color: "var(--text-secondary)", borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: 16, lineHeight: 1.6, marginTop: 4 }}>
-              ✦ <strong style={{ color: "var(--text-primary)" }}>Completely free, always.</strong> Kirbai Vision renders entirely inside your browser using your own device — no cloud, no servers, no fees. Export speed depends on your machine and the length of your video.
+              ✦ <strong style={{ color: "var(--text-primary)" }}>Completely free, always.</strong> Kirbai Vision renders entirely inside your browser using your own device — no cloud, no servers, no fees. Because your computer is doing all the work, export can take a few minutes. Longer songs take longer. Use the 5s Test button to check your settings quickly before doing a full render.
             </p>
           </div>
         </div>
