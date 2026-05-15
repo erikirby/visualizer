@@ -45,11 +45,11 @@ export const DNAHelix: React.FC<DNAHelixProps> = ({
   const t = frame / fps;
 
   // Audio reactivity
-  const viz        = audioData ? visualizeAudio({ fps, frame, audioData, numberOfSamples: 32, smoothing: true }) : [];
-  const bars       = audioData ? getMusicViz(viz as any, 32, spectrumType) : new Array(32).fill(0);
+  const viz        = audioData ? visualizeAudio({ fps, frame, audioData, numberOfSamples: 128, smoothing: true }) : [];
+  const bars       = audioData ? getMusicViz(viz as any, 128, spectrumType) : new Array(128).fill(0);
   const bassEnergy = getBassEnergy(bars);
-  const bassScale  = 1 + bassEnergy * 0.45;
-  const energy     = bars.reduce((a, b) => a + b, 0) / bars.length;
+  const bassScale  = 1 + bassEnergy * 0.22; // softened from 0.45
+  const energy     = bars.reduce((a, b) => a + (b as number), 0) / bars.length;
 
   // Steady, constant spin
   const baseSpin  = 0.55;
