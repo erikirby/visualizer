@@ -73,6 +73,7 @@ export type VisualizerProps = {
   screenPulse?: boolean;
   particlePulse?: boolean;
   showConstellationNames?: boolean;
+  isExporting?: boolean;
 } & Record<string, unknown>;
 
 export const VisualizerMain: React.FC<VisualizerProps> = ({
@@ -109,6 +110,7 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
   screenPulse = true,
   particlePulse = true,
   showConstellationNames = true,
+  isExporting = false,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -158,6 +160,7 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
         bgLoopType={bgLoopType}
         bgReversedSrc={bgReversedSrc as string | undefined}
         bgVideoDurationInFrames={bgVideoDurationInFrames}
+        isExporting={isExporting}
       />
 
       {/* Built-in procedural texture (no files needed) */}

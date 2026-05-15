@@ -213,11 +213,7 @@ export const App = () => {
   const [canExport, setCanExport] = useState<boolean | null>(null);
   const [audioReady, setAudioReady] = useState(false);
 
-  useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
-    }
-  }, []);
+
 
   useEffect(() => {
     canRenderMediaOnWeb({ container: "mp4", width: 1920, height: 1080 })
@@ -244,23 +240,14 @@ export const App = () => {
     const isVid = file.type.startsWith("video/");
     setBgIsVideo(isVid);
     if (isVid) {
-      const id = crypto.randomUUID();
-      const proxyUrl = `/video-proxy/${id}`;
-      // Get duration from a temporary blob URL, then register with SW
       const blobUrl = URL.createObjectURL(file);
+      setBackgroundUrl(blobUrl);
       const vid = document.createElement("video");
       vid.preload = "metadata";
       vid.onloadedmetadata = () => {
         setBgVideoDurationInFrames(Math.round(vid.duration * 30));
-        URL.revokeObjectURL(blobUrl);
       };
       vid.src = blobUrl;
-      // Register blob with SW; only set the proxy URL once SW confirms it's stored
-      navigator.serviceWorker.ready.then((reg) => {
-        const channel = new MessageChannel();
-        channel.port1.onmessage = () => setBackgroundUrl(proxyUrl);
-        reg.active?.postMessage({ type: "register-blob", id, blob: file }, [channel.port2]);
-      });
     } else {
       setBgVideoDurationInFrames(undefined);
       // Images: blob URL is fine — Remotion's Img component handles it correctly.
@@ -336,9 +323,9 @@ export const App = () => {
           height: 1080,
           fps: 30,
           durationInFrames,
-          defaultProps: inputProps,
+          defaultProps: { ...inputProps, isExporting: true },
         },
-        inputProps,
+        inputProps: { ...inputProps, isExporting: true },
         container: "mp4",
         videoBitrate: 25_000_000,
         allowHtmlInCanvas: true,
@@ -683,7 +670,7 @@ export const App = () => {
         <div className="preview-container">
           <div className="player-wrapper">
             {audioUrl && backgroundUrl ? (
-              <Player component={VisualizerMain} inputProps={inputProps} durationInFrames={Math.ceil(audioDuration * 30)} fps={30} compositionWidth={1920} compositionHeight={1080} style={{ width: "100%", height: "100%" }} controls />
+              <Player component={VisualizerMain} inputProps={{...inputProps, isExporting: false}} durationInFrames={Math.ceil(audioDuration * 30)} fps={30} compositionWidth={1920} compositionHeight={1080} style={{ width: "100%", height: "100%" }} controls />
             ) : (
               <div className="empty-state">
                 <FileAudio className="empty-state-icon" />
