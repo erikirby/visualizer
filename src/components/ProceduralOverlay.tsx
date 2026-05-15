@@ -53,15 +53,16 @@ export const ProceduralOverlay: React.FC<ProceduralOverlayProps> = ({
   if (type === "light-leak") {
     const t = frame / 30;
 
-    // Blob A: upper-left quadrant — amplitude capped so gradient fades to ~0 before frame edge
-    const cx  = 34 + 12 * Math.sin(t * 0.17);           // range 22–46
-    const cy  = 38 + 13 * Math.cos(t * 0.11 + 1.2);     // range 25–51
-    const r   = 74 +  8 * Math.sin(t * 0.14);            // range 66–82
+    // Blobs drift freely — overflow="visible" on the SVG removes the viewport clip
+    // so gradients bleed naturally to (and past) the screen edges with no hard line.
+    const cx  = 50 + 30 * Math.sin(t * 0.17);
+    const cy  = 42 + 26 * Math.cos(t * 0.11 + 1.2);
+    const r   = 85 + 12 * Math.sin(t * 0.14);
 
-    // Blob B: lower-right quadrant, π phase-shifted so it always opposes A
-    const cx2 = 66 + 12 * Math.sin(t * 0.13 + Math.PI); // range 54–78
-    const cy2 = 62 + 14 * Math.cos(t * 0.09 + Math.PI + 0.8); // range 48–76
-    const r2  = 70 +  8 * Math.cos(t * 0.16 + 0.5);     // range 62–78
+    // Blob B: π phase-shifted so it always sits opposite A
+    const cx2 = 50 + 34 * Math.sin(t * 0.13 + Math.PI);
+    const cy2 = 56 + 28 * Math.cos(t * 0.09 + Math.PI + 0.8);
+    const r2  = 78 + 12 * Math.cos(t * 0.16 + 0.5);
 
     const op = opacity ?? 0.48;
 
@@ -71,26 +72,25 @@ export const ProceduralOverlay: React.FC<ProceduralOverlayProps> = ({
           width="100%" height="100%"
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
+          overflow="visible"
           style={{ position: "absolute", inset: 0 }}
         >
           <defs>
-            <radialGradient id="po-leak-a" cx={`${cx}%`} cy={`${cy}%`} r={`${r}%`}>
-              <stop offset="0%"   stopColor={colorA} stopOpacity="0.85" />
-              <stop offset="15%"  stopColor={colorA} stopOpacity="0.38" />
-              <stop offset="40%"  stopColor={colorA} stopOpacity="0.08" />
-              <stop offset="70%"  stopColor={colorA} stopOpacity="0.01" />
+            {/* userSpaceOnUse: cx/cy/r are direct 0-100 coords, unaffected by rect size */}
+            <radialGradient id="po-leak-a" gradientUnits="userSpaceOnUse" cx={cx} cy={cy} r={r}>
+              <stop offset="0%"   stopColor={colorA} stopOpacity="0.9"  />
+              <stop offset="40%"  stopColor={colorA} stopOpacity="0.4"  />
               <stop offset="100%" stopColor={colorA} stopOpacity="0"    />
             </radialGradient>
-            <radialGradient id="po-leak-b" cx={`${cx2}%`} cy={`${cy2}%`} r={`${r2}%`}>
-              <stop offset="0%"   stopColor={colorB} stopOpacity="0.7"  />
-              <stop offset="18%"  stopColor={colorB} stopOpacity="0.30" />
-              <stop offset="45%"  stopColor={colorB} stopOpacity="0.06" />
-              <stop offset="75%"  stopColor={colorB} stopOpacity="0.01" />
+            <radialGradient id="po-leak-b" gradientUnits="userSpaceOnUse" cx={cx2} cy={cy2} r={r2}>
+              <stop offset="0%"   stopColor={colorB} stopOpacity="0.75" />
+              <stop offset="45%"  stopColor={colorB} stopOpacity="0.28" />
               <stop offset="100%" stopColor={colorB} stopOpacity="0"    />
             </radialGradient>
           </defs>
-          <rect width="100" height="100" fill="url(#po-leak-a)" />
-          <rect width="100" height="100" fill="url(#po-leak-b)" />
+          {/* Oversized rects so fill renders in the overflow area beyond the viewport */}
+          <rect x="-50" y="-50" width="200" height="200" fill="url(#po-leak-a)" />
+          <rect x="-50" y="-50" width="200" height="200" fill="url(#po-leak-b)" />
         </svg>
       </AbsoluteFill>
     );
