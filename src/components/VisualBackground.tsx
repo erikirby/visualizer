@@ -65,16 +65,7 @@ const SeekableVideo: React.FC<{ src: string; frameTime: number }> = ({ src, fram
 // Creates a delayRender lock *during the render phase* to fix the timing bug.
 const CanvasVideoRenderer: React.FC<{ src: string, frameTime: number }> = ({ src, frameTime }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  
-  // Keep an off-screen video element in memory
-  const [video] = React.useState(() => {
-    const v = document.createElement('video');
-    v.src = src;
-    v.muted = true;
-    v.playsInline = true;
-    v.preload = "auto";
-    return v;
-  });
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Create a new handle for every distinct frameTime during the render phase
   const handleRef = useRef<number | null>(null);
@@ -86,9 +77,9 @@ const CanvasVideoRenderer: React.FC<{ src: string, frameTime: number }> = ({ src
   }
 
   useEffect(() => {
-    const v = video;
+    const v = videoRef.current;
     const handle = handleRef.current;
-    if (handle === null) return;
+    if (!v || handle === null) return;
 
     let isCancelled = false;
 
@@ -105,24 +96,39 @@ const CanvasVideoRenderer: React.FC<{ src: string, frameTime: number }> = ({ src
     };
 
     const onSeeked = () => {
-      // requestVideoFrameCallback is the most reliable way to know a frame has been painted internally
-      if ('requestVideoFrameCallback' in v) {
-        (v as any).requestVideoFrameCallback(drawFrame);
-      } else {
-        requestAnimationFrame(drawFrame);
-      }
+      // requestVideoFrameCallback does NOT fire reliably during frame-by-frame seeking,
+      // which causes Remotion to timeout and capture static frames.
+      // Instead, we wait a tiny bit to ensure the browser has decoded the frame, then draw.
+      setTimeout(drawFrame, 15);
     };
 
-    v.addEventListener('seeked', onSeeked);
-    v.currentTime = frameTime;
+    // If we're already at the correct time (or close enough), just draw immediately
+    if (Math.abs(v.currentTime - frameTime) < 0.01 && v.readyState >= 2) {
+      drawFrame();
+    } else {
+      v.addEventListener('seeked', onSeeked, { once: true });
+      v.currentTime = frameTime;
+    }
 
     return () => {
       isCancelled = true;
       v.removeEventListener('seeked', onSeeked);
     };
-  }, [frameTime, video]);
+  }, [frameTime]);
 
-  return <canvas ref={canvasRef} style={{ ...VIDEO_FILL_STYLE, position: "absolute", inset: 0 }} />;
+  return (
+    <>
+      <video
+        ref={videoRef}
+        src={src}
+        muted
+        playsInline
+        preload="auto"
+        style={{ position: "absolute", opacity: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: -1 }}
+      />
+      <canvas ref={canvasRef} style={{ ...VIDEO_FILL_STYLE, position: "absolute", inset: 0 }} />
+    </>
+  );
 };
 
 export const VisualBackground: React.FC<VisualBackgroundProps> = ({
