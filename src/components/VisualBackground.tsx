@@ -9,6 +9,7 @@ import {
   staticFile,
   useCurrentFrame,
   useVideoConfig,
+  getRemotionEnvironment,
 } from "remotion";
 
 interface VisualBackgroundProps {
@@ -49,6 +50,7 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
   // Data URLs are self-contained — no network fetch, no buffering-detector issue,
   // works identically in the Player preview and renderMediaOnWeb export.
   const isDataUrl = src.startsWith("data:");
+  const { isRendering } = getRemotionEnvironment();
 
   const t = frame / fps;
 
@@ -63,17 +65,18 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
     if (!isVideo) return null;
 
     if (isDataUrl) {
-      // Data URL: self-contained, works in both Player preview and renderMediaOnWeb export.
-      // Use Remotion <Video> (not OffthreadVideo — OffthreadVideo fetches the src which
-      // is slow/broken for large data URLs).
+      // Player preview: <Video> (Html5Video) plays data URLs natively.
+      // Export (renderMediaOnWeb): <Video>/Html5Video is blocked — must use OffthreadVideo.
+      // Data URLs ARE fetchable by OffthreadVideo (unlike blob: URLs), so this works.
+      const VideoComp = isRendering ? OffthreadVideo : Video;
       if (bgVideoDurationInFrames) {
         return (
           <Loop durationInFrames={bgVideoDurationInFrames}>
-            <Video src={src} muted style={VIDEO_FILL_STYLE} />
+            <VideoComp src={src} muted style={VIDEO_FILL_STYLE} />
           </Loop>
         );
       }
-      return <Video src={src} muted style={VIDEO_FILL_STYLE} />;
+      return <VideoComp src={src} muted style={VIDEO_FILL_STYLE} />;
     }
 
     if (bgLoopType === "pingpong" && bgVideoDurationInFrames && bgReversedSrc) {
