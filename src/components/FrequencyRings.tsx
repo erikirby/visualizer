@@ -3,6 +3,8 @@ import { useCurrentFrame, useVideoConfig } from "remotion";
 import { useAudioData, visualizeAudio } from "@remotion/media-utils";
 import { getFreqColor, getMusicViz } from "../utils/audioColor";
 
+interface FrequencyRingsProps {
+  audioSrc: string;
   colorA?: string;
   colorB?: string;
   spectrumType?: "bass" | "wide";

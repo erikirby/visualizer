@@ -43,6 +43,10 @@ function buildBandPeaks(
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
+export interface FullWidthBarsProps {
+  audioSrc:    string;
+  colorA?:     string;
+  colorB?:     string;
   reflection?: boolean;   // mirror bars below baseline (default true)
   spectrumType?: "bass" | "wide";
 }

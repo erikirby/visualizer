@@ -7,6 +7,12 @@ import { getMusicViz } from "../utils/audioColor";
 // Renders a smooth bezier curve filled below it (mountain/wave shape).
 // Supports the same customization options as BarEQ.
 
+export interface SolidWaveProps {
+  audioSrc: string;
+  reflection?: boolean;
+  waveDelay?: boolean;
+  rumble?: boolean;
+  layers?: boolean;
   colorA?: string;  // left / bass color  (default: #FF2D9B)
   colorB?: string;  // right / treble color (default: #00B4FF)
   spectrumType?: "bass" | "wide";
