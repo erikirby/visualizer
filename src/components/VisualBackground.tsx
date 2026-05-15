@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React from "react";
 import {
   AbsoluteFill,
   Img,
@@ -8,10 +8,8 @@ import {
   staticFile,
   useCurrentFrame,
   useVideoConfig,
-  delayRender,
-  continueRender,
-  getRemotionEnvironment,
 } from "remotion";
+import { Video } from "@remotion/media";
 
 interface VisualBackgroundProps {
   bassScale?: number;
@@ -31,70 +29,6 @@ const VIDEO_FILL_STYLE: React.CSSProperties = {
   objectPosition: "center center",
 };
 
-// Used during export: seeks video to the exact frame, draws it to a canvas,
-// then signals Remotion it can take the screenshot. The canvas holds a static
-// image of the correct frame so the screenshot captures it accurately.
-const VideoFrameCanvas: React.FC<{ src: string; durationInFrames?: number }> = ({ src, durationInFrames }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  const loopFrames = durationInFrames ?? Infinity;
-  const loopedFrame = isFinite(loopFrames) ? frame % loopFrames : frame;
-  const targetTime = loopedFrame / fps;
-
-  useEffect(() => {
-    const handle = delayRender(`video-bg-frame-${frame}`);
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-
-    if (!video || !canvas) { continueRender(handle); return; }
-    const ctx = canvas.getContext("2d");
-    if (!ctx) { continueRender(handle); return; }
-
-    const draw = () => {
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      continueRender(handle);
-    };
-
-    if (Math.abs(video.currentTime - targetTime) < 0.001) {
-      draw();
-    } else {
-      video.addEventListener("seeked", draw, { once: true });
-      video.currentTime = targetTime;
-    }
-  }, [frame]);
-
-  return (
-    <>
-      <video ref={videoRef} src={src} muted playsInline preload="auto" style={{ display: "none" }} />
-      <canvas ref={canvasRef} width={1920} height={1080} style={VIDEO_FILL_STYLE} />
-    </>
-  );
-};
-
-// Used in the preview Player: plain video element that seeks to the correct
-// frame. No need for canvas/delayRender overhead in preview.
-const PreviewVideo: React.FC<{ src: string; durationInFrames?: number }> = ({ src, durationInFrames }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const ref = useRef<HTMLVideoElement>(null);
-
-  const loopFrames = durationInFrames ?? Infinity;
-  const loopedFrame = isFinite(loopFrames) ? frame % loopFrames : frame;
-  const targetTime = loopedFrame / fps;
-
-  useEffect(() => {
-    const video = ref.current;
-    if (!video) return;
-    if (Math.abs(video.currentTime - targetTime) > 0.001) {
-      video.currentTime = targetTime;
-    }
-  });
-
-  return <video ref={ref} src={src} muted playsInline preload="auto" style={VIDEO_FILL_STYLE} />;
-};
 
 export const VisualBackground: React.FC<VisualBackgroundProps> = ({
   bassScale = 1,
@@ -109,8 +43,7 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
 
   const src     = backgroundSrc ?? staticFile("background.png");
   const isVideo = bgIsVideo === true || bgLoopType !== undefined || VIDEO_EXT_RE.test(src);
-  const isUserUpload = src.startsWith("blob:");
-  const { isRendering } = getRemotionEnvironment();
+  const isUserUpload = src.startsWith("/video-proxy/");
 
   const t = frame / fps;
 
@@ -125,9 +58,16 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
     if (!isVideo) return null;
 
     if (isUserUpload) {
-      return isRendering
-        ? <VideoFrameCanvas src={src} durationInFrames={bgVideoDurationInFrames} />
-        : <PreviewVideo src={src} durationInFrames={bgVideoDurationInFrames} />;
+      // Served via SW proxy with Range support — @remotion/media Video can
+      // seek frame-accurately in both preview and export.
+      if (bgVideoDurationInFrames) {
+        return (
+          <Loop durationInFrames={bgVideoDurationInFrames}>
+            <Video src={src} muted style={VIDEO_FILL_STYLE} />
+          </Loop>
+        );
+      }
+      return <Video src={src} muted style={VIDEO_FILL_STYLE} />;
     }
 
     if (bgLoopType === "pingpong" && bgVideoDurationInFrames && bgReversedSrc) {
