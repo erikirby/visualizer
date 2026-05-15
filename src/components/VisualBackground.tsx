@@ -132,50 +132,6 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
         </AbsoluteFill>
       </AbsoluteFill>
 
-      {/* Bottom gradient */}
-      <AbsoluteFill
-        style={{
-          background:
-            "linear-gradient(to top, rgba(8,8,24,0.92) 0%, rgba(8,8,24,0.55) 22%, transparent 50%)",
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* Slow color tint */}
-      <AbsoluteFill
-        style={{
-          background: (() => {
-            const tintP = (Math.sin((t / 16) * Math.PI * 2) + 1) / 2;
-            const r = Math.round(255 * (1 - tintP));
-            const b = Math.round(155 + 100 * tintP);
-            return `rgba(${r},0,${b},0.08)`;
-          })(),
-          mixBlendMode: "screen",
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* Film grain */}
-      <AbsoluteFill style={{ pointerEvents: "none", opacity: 0.045 }}>
-        <svg
-          width="100%"
-          height="100%"
-          xmlns="http://www.w3.org/2000/svg"
-          style={{ position: "absolute", inset: 0 }}
-        >
-          <filter id="grain-filter" x="0%" y="0%" width="100%" height="100%">
-            <feTurbulence
-              type="fractalNoise"
-              baseFrequency="0.68"
-              numOctaves="4"
-              stitchTiles="stitch"
-              seed="7"
-            />
-            <feColorMatrix type="saturate" values="0" />
-          </filter>
-          <rect width="100%" height="100%" filter="url(#grain-filter)" />
-        </svg>
-      </AbsoluteFill>
     </AbsoluteFill>
   );
 };
