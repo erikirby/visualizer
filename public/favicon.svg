@@ -1,21 +1,50 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <defs>
-    <radialGradient id="starGlow" cx="50%" cy="40%" r="60%">
-      <stop offset="0%" stop-color="#ff9de2"/>
-      <stop offset="50%" stop-color="#FF2D9B"/>
-      <stop offset="100%" stop-color="#7b2fff"/>
+    <radialGradient id="body" cx="42%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#ffc8ee"/>
+      <stop offset="22%" stop-color="#FF2D9B"/>
+      <stop offset="58%" stop-color="#d44dcc"/>
+      <stop offset="82%" stop-color="#8b3fff"/>
+      <stop offset="100%" stop-color="#5522cc"/>
     </radialGradient>
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="2.5" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <radialGradient id="iri" cx="22%" cy="72%" r="42%">
+      <stop offset="0%" stop-color="#44ddff" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#44ddff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="eye" cx="30%" cy="25%" r="62%">
+      <stop offset="0%" stop-color="#2a2a2a"/>
+      <stop offset="100%" stop-color="#000"/>
+    </radialGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feFlood flood-color="#FF2D9B" flood-opacity="0.75" result="color"/>
+      <feComposite in="color" in2="blur" operator="in" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
+    <clipPath id="starClip">
+      <path d="M42.4 18.5 Q50 8 57.6 18.5 Q65.3 29 77.7 33 Q90 37 82.4 47.5 Q74.7 58 74.7 71 Q74.7 84 62.4 80 Q50 76 37.6 80 Q25.3 84 25.3 71 Q25.3 58 17.6 47.5 Q10 37 22.3 33 Q34.7 29 42.4 18.5 Z"/>
+    </clipPath>
   </defs>
-  <polygon
-    points="50,8 61,35 90,35 68,54 76,82 50,65 24,82 32,54 10,35 39,35"
-    fill="url(#starGlow)"
-    filter="url(#glow)"
-    stroke="#ff9de2"
-    stroke-width="1.5"
-    stroke-linejoin="round"
-  />
+
+  <!-- Outer glow -->
+  <path d="M42.4 18.5 Q50 8 57.6 18.5 Q65.3 29 77.7 33 Q90 37 82.4 47.5 Q74.7 58 74.7 71 Q74.7 84 62.4 80 Q50 76 37.6 80 Q25.3 84 25.3 71 Q25.3 58 17.6 47.5 Q10 37 22.3 33 Q34.7 29 42.4 18.5 Z"
+    fill="#FF2D9B" opacity="0.45" filter="url(#glow)"/>
+
+  <!-- Star body -->
+  <path d="M42.4 18.5 Q50 8 57.6 18.5 Q65.3 29 77.7 33 Q90 37 82.4 47.5 Q74.7 58 74.7 71 Q74.7 84 62.4 80 Q50 76 37.6 80 Q25.3 84 25.3 71 Q25.3 58 17.6 47.5 Q10 37 22.3 33 Q34.7 29 42.4 18.5 Z"
+    fill="url(#body)" stroke="#ffaadd" stroke-width="1.2"/>
+
+  <!-- Iridescent blue patch -->
+  <path d="M42.4 18.5 Q50 8 57.6 18.5 Q65.3 29 77.7 33 Q90 37 82.4 47.5 Q74.7 58 74.7 71 Q74.7 84 62.4 80 Q50 76 37.6 80 Q25.3 84 25.3 71 Q25.3 58 17.6 47.5 Q10 37 22.3 33 Q34.7 29 42.4 18.5 Z"
+    fill="url(#iri)"/>
+
+<!-- Left eye -->
+  <circle cx="37" cy="47" r="9" fill="url(#eye)"/>
+  <circle cx="33.5" cy="43" r="2.6" fill="white" opacity="0.95"/>
+  <circle cx="39.5" cy="41.5" r="1" fill="white" opacity="0.5"/>
+
+  <!-- Right eye -->
+  <circle cx="63" cy="47" r="9" fill="url(#eye)"/>
+  <circle cx="59.5" cy="43" r="2.6" fill="white" opacity="0.95"/>
+  <circle cx="65.5" cy="41.5" r="1" fill="white" opacity="0.5"/>
 </svg>

@@ -278,7 +278,10 @@ export const App = () => {
       <div className="sidebar">
         <div className="sidebar-header">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <h1>Kirbai Vision</h1>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <img src="/favicon.svg" alt="Kirbai" style={{ width: 32, height: 32 }} />
+              <h1>Kirbai Vision</h1>
+            </div>
             <button
               onClick={() => setShowHelp(true)}
               style={{ background: "none", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "50%", width: 28, height: 28, color: "var(--text-secondary)", cursor: "pointer", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
