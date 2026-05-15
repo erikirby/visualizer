@@ -29,23 +29,17 @@ const VIDEO_FILL_STYLE: React.CSSProperties = {
   height: "100%",
   objectFit: "cover",
   objectPosition: "center center",
-  objectPosition: "center center",
-// --- PREVIEW RENDERER ---
-// Fast, simple HTML video playback synced to the frame. Works perfectly in the 
-// browser Player but fails in renderMediaOnWeb because of canvas taint/capture issues.
+};
+
+// Preview: plain <video> seeking to frame time. Works in the Player, not in export.
 const SeekableVideo: React.FC<{ src: string; frameTime: number }> = ({ src, frameTime }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    // Only seek if we are meaningfully out of sync to avoid stuttering
     if (isFinite(frameTime) && Math.abs(video.currentTime - frameTime) > 0.05) {
-      try {
-        video.currentTime = frameTime;
-      } catch (e) {
-        console.error("SeekableVideo error:", e);
-      }
+      try { video.currentTime = frameTime; } catch {}
     }
   }, [frameTime, src]);
 
@@ -61,69 +55,68 @@ const SeekableVideo: React.FC<{ src: string; frameTime: number }> = ({ src, fram
   );
 };
 
-// --- EXPORT RENDERER ---
-// Bulletproof DOM-to-Canvas renderer for export. It draws the video onto a <canvas>.
-// This bypasses html2canvas's inability to capture local <video> tags.
-// Creates a delayRender lock *during the render phase* to fix the timing bug.
-const CanvasVideoRenderer: React.FC<{ src: string, frameTime: number }> = ({ src, frameTime }) => {
+// Export: draws each video frame onto a <canvas> so Remotion's canvas capture can see it.
+// A plain <video> element is invisible to canvas capture (browser security rule).
+// Canvas drawn from a same-origin blob URL is NOT tainted and CAN be captured.
+const CanvasVideoRenderer: React.FC<{ src: string; frameTime: number }> = ({ src, frameTime }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-
-  // Create a new handle for every distinct frameTime during the render phase
   const handleRef = useRef<number | null>(null);
-  const lastFrameTimeRef = useRef<number | null>(null);
+  const lastFrameRef = useRef<number | null>(null);
 
-  if (lastFrameTimeRef.current !== frameTime) {
-    handleRef.current = delayRender("canvas-video-" + frameTime);
-    lastFrameTimeRef.current = frameTime;
+  // Create the delayRender handle synchronously during render so the renderer
+  // waits before any effects run — this is the correct Remotion pattern.
+  if (lastFrameRef.current !== frameTime) {
+    if (handleRef.current !== null) continueRender(handleRef.current); // resolve previous
+    handleRef.current = delayRender("canvas-video-frame");
+    lastFrameRef.current = frameTime;
   }
 
   useEffect(() => {
-    const v = videoRef.current;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
     const handle = handleRef.current;
-    if (!v || handle === null) return;
+    if (!video || !canvas || handle === null) return;
 
-    let isCancelled = false;
-
-    const drawFrame = () => {
-      if (isCancelled) return;
-      const canvas = canvasRef.current;
-      if (canvas && v.videoWidth) {
-        canvas.width = v.videoWidth;
-        canvas.height = v.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(v, 0, 0, canvas.width, canvas.height);
-      }
+    let resolved = false;
+    const finish = () => {
+      if (resolved) return;
+      resolved = true;
       continueRender(handle);
     };
 
-    const onSeeked = () => {
-      // requestVideoFrameCallback does NOT fire reliably during frame-by-frame seeking,
-      // which causes Remotion to timeout and capture static frames.
-      // Instead, we wait a tiny bit to ensure the browser has decoded the frame, then draw.
-      setTimeout(drawFrame, 15);
+    const timeout = setTimeout(finish, 5000);
+
+    const draw = () => {
+      if (video.videoWidth > 0) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext("2d")?.drawImage(video, 0, 0, canvas.width, canvas.height);
+      }
+      finish();
     };
 
-    // If we're already at the correct time (or close enough), just draw immediately
-    if (isFinite(frameTime) && Math.abs(v.currentTime - frameTime) < 0.01 && v.readyState >= 2) {
-      drawFrame();
-    } else if (isFinite(frameTime)) {
-      v.addEventListener('seeked', onSeeked, { once: true });
-      try {
-        v.currentTime = frameTime;
-      } catch (e) {
-        console.error("CanvasVideoRenderer error:", e);
-        drawFrame(); // fallback
+    const doSeek = () => {
+      if (Math.abs(video.currentTime - frameTime) < 0.01 && video.readyState >= 2) {
+        setTimeout(draw, 20);
+      } else {
+        video.addEventListener("seeked", () => setTimeout(draw, 20), { once: true });
+        try { video.currentTime = frameTime; } catch { draw(); }
       }
+    };
+
+    if (video.readyState >= 1) {
+      doSeek();
     } else {
-      drawFrame();
+      video.addEventListener("loadedmetadata", doSeek, { once: true });
     }
 
     return () => {
-      isCancelled = true;
-      v.removeEventListener('seeked', onSeeked);
+      clearTimeout(timeout);
+      video.removeEventListener("loadedmetadata", doSeek);
+      finish();
     };
-  }, [frameTime]);
+  }, [frameTime, src]);
 
   return (
     <>
@@ -133,13 +126,11 @@ const CanvasVideoRenderer: React.FC<{ src: string, frameTime: number }> = ({ src
         muted
         playsInline
         preload="auto"
-        style={{ position: "absolute", opacity: 0.01, width: "100%", height: "100%", pointerEvents: "none", zIndex: -1 }}
+        style={{ position: "absolute", opacity: 0, width: 1, height: 1, pointerEvents: "none" }}
       />
       <canvas ref={canvasRef} style={{ ...VIDEO_FILL_STYLE, position: "absolute", inset: 0 }} />
     </>
   );
-};
-
 };
 
 export const VisualBackground: React.FC<VisualBackgroundProps> = ({
@@ -156,7 +147,7 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
 
   const src     = backgroundSrc ?? staticFile("background.png");
   const isVideo = bgIsVideo === true || bgLoopType !== undefined || VIDEO_EXT_RE.test(src);
-  const isBlob = src.startsWith("blob:");
+  const isBlob  = src.startsWith("blob:");
 
   const t = frame / fps;
 
@@ -171,17 +162,15 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
     if (!isVideo) return null;
 
     if (isBlob) {
-      const validDuration = (bgVideoDurationInFrames && bgVideoDurationInFrames > 0 && isFinite(bgVideoDurationInFrames)) 
-        ? bgVideoDurationInFrames 
+      const validDuration = (bgVideoDurationInFrames && bgVideoDurationInFrames > 0 && isFinite(bgVideoDurationInFrames))
+        ? bgVideoDurationInFrames
         : totalFrames;
-      let frameTime  = (frame % validDuration) / fps;
-      if (isNaN(frameTime) || !isFinite(frameTime)) frameTime = 0;
-      
-      return isExporting ? (
-        <CanvasVideoRenderer src={src} frameTime={frameTime} />
-      ) : (
-        <SeekableVideo src={src} frameTime={frameTime} />
-      );
+      let frameTime = (frame % validDuration) / fps;
+      if (!isFinite(frameTime)) frameTime = 0;
+
+      return isExporting
+        ? <CanvasVideoRenderer src={src} frameTime={frameTime} />
+        : <SeekableVideo src={src} frameTime={frameTime} />;
     }
 
     if (bgLoopType === "pingpong" && bgVideoDurationInFrames && bgReversedSrc) {
