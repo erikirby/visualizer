@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Player } from "@remotion/player";
-import { renderMediaOnWeb } from "@remotion/web-renderer";
+import { renderMediaOnWeb, canRenderMediaOnWeb } from "@remotion/web-renderer";
 import { Upload, FileAudio, FileImage, FileText, Download, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { RemotionRoot } from "./Root";
 import { VisualizerMain, VisualizerProps, VisualizerLayout } from "./VisualizerMain";
@@ -187,12 +187,48 @@ export const App = () => {
     setIsRendering(true);
     setProgress(0);
     try {
-      let p = 0;
-      const interval = setInterval(() => {
-        p += 5; setProgress(p);
-        if (p >= 100) { clearInterval(interval); setIsRendering(false); alert("Render complete!"); }
-      }, 500);
-    } catch { setIsRendering(false); }
+      const { canRender, issues } = await canRenderMediaOnWeb({
+        container: "mp4",
+        width: 1920,
+        height: 1080,
+      });
+      if (!canRender) {
+        const msg = issues.filter(i => i.severity === "error").map(i => i.message).join("\n");
+        alert(`Your browser doesn't support video export.\n\n${msg}\n\nPlease use Chrome or Edge.`);
+        return;
+      }
+
+      const result = await renderMediaOnWeb({
+        composition: {
+          component: VisualizerMain,
+          id: "Visualizer",
+          width: 1920,
+          height: 1080,
+          fps: 30,
+          durationInFrames: Math.ceil(audioDuration * 30),
+          defaultProps: inputProps,
+        },
+        inputProps,
+        container: "mp4",
+        onProgress: ({ progress }) => setProgress(Math.round(progress * 100)),
+      });
+
+      const blob = await result.getBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${(artistName || "visualizer").replace(/\s+/g, "-")}-${(trackName || "export").replace(/\s+/g, "-")}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error(err);
+      alert(`Export failed: ${err?.message ?? "Unknown error"}`);
+    } finally {
+      setIsRendering(false);
+      setProgress(0);
+    }
   };
 
   const inputProps: VisualizerProps = {
