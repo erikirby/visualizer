@@ -130,14 +130,19 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
   const { bassScale, beatFlash } = React.useMemo(() => {
     if (!audioData) return { bassScale: 1, beatFlash: 0 };
 
+    // Raw transient detection
     const vizRaw    = visualizeAudio({ fps, frame, audioData, numberOfSamples: 32, smoothing: false });
-    const vizSmooth = visualizeAudio({ fps, frame, audioData, numberOfSamples: 32, smoothing: true  });
+    // Ultra-smooth sampling for movement (128 samples averages out jitter)
+    const vizSmooth = visualizeAudio({ fps, frame, audioData, numberOfSamples: 128, smoothing: true  });
+    
     const rawBass    = getBassEnergy(vizRaw);
     const smoothBass = getBassEnergy(vizSmooth);
-    const kickTransient = Math.max(0, rawBass - smoothBass - 0.08) * 4;
+    
+    // Detect punchy transients for the flash
+    const kickTransient = Math.max(0, rawBass - smoothBass - 0.10) * 3;
 
     return {
-      bassScale: 1 + smoothBass * 0.06,
+      bassScale: 1 + smoothBass * 0.035, // reduced from 0.06
       beatFlash: Math.min(1, kickTransient),
     };
   }, [audioData, frame, fps]);
@@ -218,7 +223,7 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
       {pulseFlash && beatFlash > 0.05 && (
         <AbsoluteFill
           style={{
-            background: `${flashColor}${Math.round(beatFlash * 0.22 * 255).toString(16).padStart(2, "0")}`,
+            background: `${flashColor}${Math.round(beatFlash * 0.08 * 255).toString(16).padStart(2, "0")}`,
             mixBlendMode: "screen",
             pointerEvents: "none",
           }}
