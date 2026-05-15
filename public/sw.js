@@ -3,11 +3,16 @@
 // for efficient frame seeking. This SW stores the uploaded Blob and serves it
 // at /video-proxy/{id} with proper HTTP 206 partial-content responses.
 
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
+
 const blobRegistry = new Map();
 
 self.addEventListener('message', (event) => {
   if (event.data.type === 'register-blob') {
     blobRegistry.set(event.data.id, event.data.blob);
+    // Acknowledge so the app only sets the proxy URL after the blob is stored
+    if (event.ports[0]) event.ports[0].postMessage({ type: 'registered' });
   } else if (event.data.type === 'unregister-blob') {
     blobRegistry.delete(event.data.id);
   }

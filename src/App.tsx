@@ -250,9 +250,10 @@ export const App = () => {
       const id = crypto.randomUUID();
       const proxyUrl = `/video-proxy/${id}`;
       navigator.serviceWorker.ready.then((reg) => {
-        reg.active?.postMessage({ type: "register-blob", id, blob: file });
+        const channel = new MessageChannel();
+        channel.port1.onmessage = () => setBackgroundUrl(proxyUrl);
+        reg.active?.postMessage({ type: "register-blob", id, blob: file }, [channel.port2]);
       });
-      setBackgroundUrl(proxyUrl);
       const vid = document.createElement("video");
       vid.preload = "metadata";
       vid.onloadedmetadata = () => {
