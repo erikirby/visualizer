@@ -598,13 +598,12 @@ export const App = () => {
         </div>
 
         <div className="sidebar-footer">
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <button
               className="primary-button"
               onClick={() => handleRender(false)}
               disabled={!audioReady || !backgroundUrl || isRendering || canExport === false}
               title={canExport === false ? "Export requires Chrome or Edge" : !audioReady ? "Load an audio file first" : ""}
-              style={{ flex: 1 }}
             >
               {isRendering ? `Rendering ${Math.round(progress)}%` : canExport === false ? "Export (Chrome/Edge only)" : "Export MP4"}
             </button>
@@ -613,9 +612,9 @@ export const App = () => {
               onClick={() => handleRender(true)}
               disabled={!audioReady || !backgroundUrl || isRendering || canExport === false}
               title="Export first 5 seconds only — great for quickly checking your settings"
-              style={{ flex: "0 0 auto", fontSize: 12, padding: "0 14px", opacity: 0.75 }}
+              style={{ fontSize: 13, opacity: 0.6, padding: "10px" }}
             >
-              5s Test
+              5 Second Test Video
             </button>
           </div>
         </div>
