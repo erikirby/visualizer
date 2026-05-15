@@ -9,7 +9,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { Video } from "@remotion/media";
+import { getVideoFrame } from "../utils/videoFrameExtractor";
 
 interface VisualBackgroundProps {
   bassScale?: number;
@@ -28,6 +28,16 @@ const VIDEO_FILL_STYLE: React.CSSProperties = {
   height: "100%",
   objectFit: "cover",
   objectPosition: "center center",
+};
+
+// Renders a pre-extracted JPEG frame for the current composition frame.
+// No video element, no canvas, no allowHtmlInCanvas — pure internal Remotion render.
+const BlobVideoFrame: React.FC<{ src: string; durationInFrames: number }> = ({ src, durationInFrames }) => {
+  const frame = useCurrentFrame();
+  const loopedFrame = durationInFrames > 0 ? frame % durationInFrames : frame;
+  const dataUrl = getVideoFrame(src, loopedFrame);
+  if (!dataUrl) return null;
+  return <Img src={dataUrl} style={VIDEO_FILL_STYLE} />;
 };
 
 export const VisualBackground: React.FC<VisualBackgroundProps> = ({
@@ -61,11 +71,7 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
       const validDuration = (bgVideoDurationInFrames && bgVideoDurationInFrames > 0 && isFinite(bgVideoDurationInFrames))
         ? bgVideoDurationInFrames
         : totalFrames;
-      return (
-        <Loop durationInFrames={validDuration}>
-          <Video src={src} muted style={VIDEO_FILL_STYLE} />
-        </Loop>
-      );
+      return <BlobVideoFrame src={src} durationInFrames={validDuration} />;
     }
 
     if (bgLoopType === "pingpong" && bgVideoDurationInFrames && bgReversedSrc) {

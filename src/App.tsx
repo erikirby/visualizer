@@ -6,6 +6,7 @@ import { RemotionRoot } from "./Root";
 import { VisualizerMain, VisualizerProps, VisualizerLayout } from "./VisualizerMain";
 import { Main } from "./Main";
 import { forceAlign, AlignWord } from './utils/aligner';
+import { extractVideoFrames, clearVideoFrames } from './utils/videoFrameExtractor';
 // @ts-ignore - Vite specific worker import
 import WhisperWorker from './whisper.worker.ts?worker';
 
@@ -210,7 +211,7 @@ export const App = () => {
   };
 
   const [isRendering, setIsRendering] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [renderStatus, setRenderStatus] = useState("Rendering");
   const [showHelp, setShowHelp] = useState(false);
   const [canExport, setCanExport] = useState<boolean | null>(null);
   const [audioReady, setAudioReady] = useState(false);
@@ -304,7 +305,7 @@ export const App = () => {
       test_mode: testMode,
     });
     setIsRendering(true);
-    setProgress(0);
+    setRenderStatus("Rendering 0%");
     try {
       const { canRender, issues } = await canRenderMediaOnWeb({
         container: "mp4",
@@ -316,6 +317,21 @@ export const App = () => {
         alert(`Your browser doesn't support video export.\n\n${msg}\n\nPlease use Chrome or Edge.`);
         return;
       }
+
+      // Video backgrounds: extract frames as JPEGs first, then render internally
+      // (no allowHtmlInCanvas — Remotion uses its own pipeline, not screen capture)
+      if (bgIsVideo && backgroundUrl && bgVideoDurationInFrames) {
+        setRenderStatus("Extracting video frames 0%");
+        await extractVideoFrames(
+          backgroundUrl,
+          30,
+          bgVideoDurationInFrames / 30,
+          (pct) => setRenderStatus(`Extracting video frames ${Math.round(pct * 100)}%`),
+        );
+        setRenderStatus("Rendering 0%");
+      }
+
+      const isVideoBg = bgIsVideo && backgroundUrl?.startsWith("blob:");
 
       const result = await renderMediaOnWeb({
         composition: {
@@ -330,10 +346,13 @@ export const App = () => {
         inputProps: { ...inputProps, isExporting: true },
         container: "mp4",
         videoBitrate: 25_000_000,
-        allowHtmlInCanvas: true,
-        onProgress: ({ progress }) => setProgress(Math.round(progress * 100)),
+        // Image backgrounds use allowHtmlInCanvas (screen capture pipeline).
+        // Video backgrounds use the internal renderer — frames are pre-extracted JPEGs.
+        allowHtmlInCanvas: !isVideoBg,
+        onProgress: ({ progress }) => setRenderStatus(`Rendering ${Math.round(progress * 100)}%`),
       });
 
+      if (backgroundUrl) clearVideoFrames(backgroundUrl);
       const blob = await result.getBlob();
       track('export_completed', { layout, theme_id: themeId, test_mode: testMode });
       const url = URL.createObjectURL(blob);
@@ -347,10 +366,11 @@ export const App = () => {
       URL.revokeObjectURL(url);
     } catch (err: any) {
       console.error(err);
+      if (backgroundUrl) clearVideoFrames(backgroundUrl);
       alert(`Export failed: ${err?.message ?? "Unknown error"}`);
     } finally {
       setIsRendering(false);
-      setProgress(0);
+      setRenderStatus("Rendering");
     }
   };
 
@@ -647,7 +667,7 @@ export const App = () => {
               disabled={!audioReady || !backgroundUrl || isRendering || canExport === false}
               title={canExport === false ? "Export requires Chrome or Edge" : !audioReady ? "Load an audio file first" : ""}
             >
-              {isRendering ? `Rendering ${Math.round(progress)}%` : canExport === false ? "Export (Chrome/Edge only)" : "Export MP4"}
+              {isRendering ? renderStatus : canExport === false ? "Export (Chrome/Edge only)" : "Export MP4"}
             </button>
             <button
               className="primary-button"
