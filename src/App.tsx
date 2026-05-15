@@ -136,51 +136,68 @@ export const App = () => {
 
   const [isRendering, setIsRendering] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [showHelp, setShowHelp] = useState(false);
+  const [canExport, setCanExport] = useState<boolean | null>(null);
+  const [audioReady, setAudioReady] = useState(false);
+
+  useEffect(() => {
+    canRenderMediaOnWeb({ container: "mp4", width: 1920, height: 1080 })
+      .then(({ canRender }) => setCanExport(canRender));
+  }, []);
 
   const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setAudioUrl(url);
-      const audio = new Audio(url);
-      audio.onloadedmetadata = () => setAudioDuration(audio.duration);
-    }
+    if (!file) return;
+    if (file.size > 200 * 1024 * 1024) { alert("Audio file must be under 200MB."); return; }
+    setAudioReady(false);
+    const url = URL.createObjectURL(file);
+    setAudioUrl(url);
+    const audio = new Audio(url);
+    audio.onloadedmetadata = () => { setAudioDuration(audio.duration); setAudioReady(true); };
+    audio.onerror = () => alert("Couldn't read that audio file. Try MP3 or WAV.");
   };
 
   const handleBackgroundUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setBackgroundUrl(url);
-      setBackgroundName(file.name);
-      setBgIsVideo(file.type.startsWith("video/"));
-    }
+    if (!file) return;
+    if (file.size > 500 * 1024 * 1024) { alert("Background file must be under 500MB."); return; }
+    const url = URL.createObjectURL(file);
+    setBackgroundUrl(url);
+    setBackgroundName(file.name);
+    setBgIsVideo(file.type.startsWith("video/"));
   };
 
   const handleLyricsUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setLyricsName(file.name);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const parsed = JSON.parse(event.target?.result as string);
-          if (Array.isArray(parsed)) setLines(parsed);
-          setShowLyrics(true);
-        } catch { alert("Invalid JSON lyrics file."); }
-      };
-      reader.readAsText(file);
-    }
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { alert("Lyrics file must be under 5MB."); return; }
+    setLyricsName(file.name);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        if (!Array.isArray(parsed)) { alert("Invalid lyrics file: expected a JSON array."); return; }
+        const valid = parsed.every(item => typeof item === "object" && item !== null && "time" in item && "text" in item);
+        if (!valid) { alert("Invalid lyrics format: each entry needs a 'time' and 'text' field."); return; }
+        setLines(parsed);
+        setShowLyrics(true);
+      } catch { alert("Couldn't parse lyrics file. Make sure it's valid JSON."); }
+    };
+    reader.readAsText(file);
   };
 
   const handleSync = async () => {
     if (!audioUrl || !rawLyrics.trim()) return;
+    const lyricsSnapshot = rawLyricsRef.current;
     setIsSyncing(true);
     setSyncStatus("Decoding Audio...");
     try {
       const audioData = await decodeAudio(audioUrl);
-      worker.current?.postMessage({ audio: audioData });
-    } catch (err) { alert("Sync failed."); setIsSyncing(false); }
+      worker.current?.postMessage({ audio: audioData, lyrics: lyricsSnapshot });
+    } catch (err: any) {
+      alert(`Sync failed: ${err?.message ?? "couldn't decode audio"}`);
+      setIsSyncing(false);
+    }
   };
 
   const handleRender = async () => {
@@ -260,8 +277,15 @@ export const App = () => {
     <div className="app-container">
       <div className="sidebar">
         <div className="sidebar-header">
-          <h1>AELOW Engine</h1>
-          <p>Premium Lyric Video Generator</p>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <h1>Kirbai Vision</h1>
+            <button
+              onClick={() => setShowHelp(true)}
+              style={{ background: "none", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "50%", width: 28, height: 28, color: "var(--text-secondary)", cursor: "pointer", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+              title="How to use"
+            >?</button>
+          </div>
+          <p>Lyric Video Creator</p>
         </div>
 
         <div className="sidebar-content">
@@ -430,11 +454,46 @@ export const App = () => {
         </div>
 
         <div className="sidebar-footer">
-          <button className="primary-button" onClick={handleRender} disabled={!audioUrl || !backgroundUrl || isRendering}>
-            {isRendering ? `Rendering ${Math.round(progress)}%` : "Export MP4"}
+          <button
+            className="primary-button"
+            onClick={handleRender}
+            disabled={!audioReady || !backgroundUrl || isRendering || canExport === false}
+            title={canExport === false ? "Export requires Chrome or Edge" : !audioReady ? "Load an audio file first" : ""}
+          >
+            {isRendering ? `Rendering ${Math.round(progress)}%` : canExport === false ? "Export (Chrome/Edge only)" : "Export MP4"}
           </button>
         </div>
       </div>
+
+      {showHelp && (
+        <div
+          onClick={() => setShowHelp(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: "#111126", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: "36px 40px", maxWidth: 480, width: "90%", position: "relative" }}
+          >
+            <button onClick={() => setShowHelp(false)} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", color: "var(--text-secondary)", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
+            <h2 style={{ fontFamily: "Syne, sans-serif", fontSize: 22, fontWeight: 700, background: "linear-gradient(90deg, #FF2D9B, #00B4FF)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", marginBottom: 8 }}>Kirbai Vision</h2>
+            <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 28 }}>Make a lyric video in 4 steps.</p>
+            {[
+              { n: "1", title: "Upload your audio", body: "MP3 or WAV, up to 200MB. The preview won't play until both audio and background are loaded." },
+              { n: "2", title: "Upload a background", body: "Any image or video file. This becomes the backdrop of your video." },
+              { n: "3", title: "Style it", body: "Pick a layout, theme, and toggle particles or screen pulse. Use the Quick Start presets to get going fast." },
+              { n: "4", title: "Add lyrics & export", body: "Paste your lyrics and hit Sync — AI will time them to the audio. When you're happy with the preview, hit Export MP4. Export requires Chrome or Edge." },
+            ].map(step => (
+              <div key={step.n} style={{ display: "flex", gap: 16, marginBottom: 20 }}>
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg, #FF2D9B, #7b2fff)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, flexShrink: 0, marginTop: 2 }}>{step.n}</div>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{step.title}</div>
+                  <div style={{ color: "var(--text-secondary)", fontSize: 13, lineHeight: 1.5 }}>{step.body}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="preview-area">
         <div className="preview-container">
