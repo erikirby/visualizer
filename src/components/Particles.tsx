@@ -68,12 +68,13 @@ export const Particles: React.FC<ParticlesProps> = ({
   const COUNT     = Math.round(((isBurst || isInward) ? BURST_COUNT : MIST_COUNT) * countMultiplier);
 
   const lifetimeSecs  = LIFETIME / speedMultiplier;
-  // SOFTENED: reactiveSpeed boost reduced to 0.15 (was 0.3)
-  const energyBoost   = reactiveSpeed ? 1 + energy * 0.15 : 1;
+  // SUBTLE: reactiveSpeed boost reduced to 0.07 (was 0.15)
+  const energyBoost   = reactiveSpeed ? 1 + energy * 0.07 : 1;
 
   const elements: React.ReactNode[] = [];
 
   for (let i = 0; i < COUNT; i++) {
+    // ... rest of the loop logic remains the same ...
     const phaseOffset    = (i / COUNT) * lifetimeSecs;
     const timeSinceSpawn = ((t + phaseOffset) % lifetimeSecs);
     const progress       = timeSinceSpawn / lifetimeSecs;
@@ -100,10 +101,10 @@ export const Particles: React.FC<ParticlesProps> = ({
       y = CY + Math.sin(angle) * r;
 
       const baseSize = 2.5 + seed(i, 0) * 3.5;
-      // SOFTENED: energy size boost reduced to 1.5 (was 3.0)
-      size           = (baseSize + energy * 1.5) * Math.max(0.3, 1 - travelProgress * 0.45);
-      // SOFTENED: energy opacity boost reduced to 1.0 (was 2.5)
-      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.4 + energy * 1.0);
+      // SUBTLE: energy size boost reduced to 0.7 (was 1.5)
+      size           = (baseSize + energy * 0.7) * Math.max(0.3, 1 - travelProgress * 0.45);
+      // SUBTLE: energy opacity boost reduced to 0.5 (was 1.0)
+      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.4 + energy * 0.5);
 
     } else if (isInward) {
       const goldenAngle = i * 2.39996;
@@ -121,10 +122,10 @@ export const Particles: React.FC<ParticlesProps> = ({
       y = CY + sinA * r;
 
       const baseSize = 2.5 + seed(i, 0) * 3.5;
-      // SOFTENED: energy size boost reduced to 1.5 (was 3.0)
-      size           = (baseSize + energy * 1.5) * (1.0 - inwardProg * 0.4);
-      // SOFTENED: energy opacity boost reduced to 1.0 (was 2.5)
-      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.4 + energy * 1.0);
+      // SUBTLE: energy size boost reduced to 0.7 (was 1.5)
+      size           = (baseSize + energy * 0.7) * (1.0 - inwardProg * 0.4);
+      // SUBTLE: energy opacity boost reduced to 0.5 (was 1.0)
+      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.4 + energy * 0.5);
 
     } else {
       const spread1 = seed(i, 2);
@@ -157,10 +158,10 @@ export const Particles: React.FC<ParticlesProps> = ({
       }
 
       const baseSize = 2.5 + seed(i, 0) * 3.5;
-      // SOFTENED: energy size boost reduced to 1.5 (was 3.0)
-      size           = (baseSize + energy * 1.5) * Math.max(0.3, 1 - travelProgress * 0.35);
-      // SOFTENED: energy opacity boost reduced to 1.0 (was 2.5)
-      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.5 + energy * 1.0);
+      // SUBTLE: energy size boost reduced to 0.7 (was 1.5)
+      size           = (baseSize + energy * 0.7) * Math.max(0.3, 1 - travelProgress * 0.35);
+      // SUBTLE: energy opacity boost reduced to 0.5 (was 1.0)
+      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.5 + energy * 0.5);
     }
 
     if (opacity < 0.02) continue;

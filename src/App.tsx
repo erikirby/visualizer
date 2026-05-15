@@ -177,7 +177,8 @@ export const App = () => {
   const [reverseTitles, setReverseTitles] = useState<boolean>(false);
   const [fontFamily, setFontFamily] = useState<string>("Inter");
   const [showLyrics, setShowLyrics] = useState<boolean>(true);
-  const [screenPulse, setScreenPulse] = useState<boolean>(true);
+  const [pulseMovement, setPulseMovement] = useState<boolean>(true);
+  const [pulseFlash, setPulseFlash] = useState<boolean>(true);
   const [particlePulse, setParticlePulse] = useState<boolean>(true);
   const [showConstellationNames, setShowConstellationNames] = useState<boolean>(true);
   const [overlayType, setOverlayType] = useState<any>("none");
@@ -375,7 +376,8 @@ export const App = () => {
     fontFamily,
     lines,
     showLyrics,
-    screenPulse,
+    pulseMovement,
+    pulseFlash,
     showConstellationNames,
     showVisualizer: true,
     spectrumType
@@ -530,9 +532,17 @@ export const App = () => {
           )}
 
           <div className="toggle-group">
-            <label>Screen Pulse (Bass Zoom)</label>
+            <label>Movement Pulse</label>
             <label className="switch">
-              <input type="checkbox" checked={screenPulse} onChange={e => setScreenPulse(e.target.checked)} />
+              <input type="checkbox" checked={pulseMovement} onChange={e => setPulseMovement(e.target.checked)} />
+              <span className="slider"></span>
+            </label>
+          </div>
+
+          <div className="toggle-group">
+            <label>Flash Pulse</label>
+            <label className="switch">
+              <input type="checkbox" checked={pulseFlash} onChange={e => setPulseFlash(e.target.checked)} />
               <span className="slider"></span>
             </label>
           </div>

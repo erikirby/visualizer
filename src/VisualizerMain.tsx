@@ -70,7 +70,8 @@ export type VisualizerProps = {
   lines?: any[];
   showLyrics?: boolean;
   showVisualizer?: boolean;
-  screenPulse?: boolean;
+  pulseMovement?: boolean;
+  pulseFlash?: boolean;
   particlePulse?: boolean;
   showConstellationNames?: boolean;
   isExporting?: boolean;
@@ -108,7 +109,8 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
   lines = [],
   showLyrics = true,
   showVisualizer = true,
-  screenPulse = true,
+  pulseMovement = true,
+  pulseFlash = true,
   particlePulse = true,
   showConstellationNames = true,
   isExporting = false,
@@ -156,7 +158,7 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
     <AbsoluteFill style={{ background: "#080818" }}>
       <Audio src={audioSrc as string} />
       <VisualBackground
-        bassScale={screenPulse ? bassScale : 1}
+        bassScale={pulseMovement ? bassScale : 1}
         backgroundSrc={backgroundSrc as string}
         bgIsVideo={bgIsVideo}
         bgLoopType={bgLoopType}
@@ -213,7 +215,7 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
         <ArtistBug artistName={artistName} trackName={trackName} size="full" reverseTitles={reverseTitles} fontFamily={fontFamily} colorA={colorA} colorB={colorB} />
       )}
 
-      {screenPulse && beatFlash > 0.05 && (
+      {pulseFlash && beatFlash > 0.05 && (
         <AbsoluteFill
           style={{
             background: `${flashColor}${Math.round(beatFlash * 0.22 * 255).toString(16).padStart(2, "0")}`,
