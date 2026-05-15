@@ -156,6 +156,17 @@ export const App = () => {
   const [particleDirection, setParticleDirection] = useState<any>("auto");
   const [particleSpeed, setParticleSpeed] = useState<number>(1.0);
   const [particleCount, setParticleCount] = useState<number>(1.0);
+
+  // Sensible particle density per layout — applied when particles are first turned on
+  const PARTICLE_COUNT_DEFAULTS: Partial<Record<VisualizerLayout, number>> = {
+    bottom: 0.5, audiogram: 0.5, solidwave: 1.0,
+    rings: 0.75, echo: 1.25, "echo-solid": 1.25,
+    dna: 0.5, constellation: 0.75,
+  };
+  const handleToggleParticles = (on: boolean) => {
+    setShowParticles(on);
+    if (on) setParticleCount(PARTICLE_COUNT_DEFAULTS[layout] ?? 1.0);
+  };
   const [reflection, setReflection] = useState<boolean>(true);
   const [showTitles, setShowTitles] = useState<boolean>(true);
   const [artistName, setArtistName] = useState<string>("ARTIST NAME");
@@ -445,7 +456,7 @@ export const App = () => {
           <div className="toggle-group">
             <label>Show Particles</label>
             <label className="switch">
-              <input type="checkbox" checked={showParticles} onChange={e => setShowParticles(e.target.checked)} />
+              <input type="checkbox" checked={showParticles} onChange={e => handleToggleParticles(e.target.checked)} />
               <span className="slider"></span>
             </label>
           </div>

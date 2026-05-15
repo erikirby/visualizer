@@ -91,6 +91,12 @@ export const Particles: React.FC<ParticlesProps> = ({
     // naturally exits off-screen. No hard stop line ever.
     const travelProgress = progress * speedMult;
 
+    // Per-particle inherent brightness — wide spread creates atmospheric layering.
+    // Range: ~0.12 (barely-visible haze) → ~0.90 (bright highlight).
+    // Uses a power curve so most particles land in the hazy low range,
+    // with fewer bright ones — same distribution professional VFX tools use.
+    const particleBrightness = Math.pow(seed(i, 6), 1.6) * 0.78 + 0.12;
+
     // Fade in quickly at spawn, fade out over last 20% of lifetime
     const fadeIn  = Math.min(1, progress * 10);
     const fadeOut = 1 - Math.pow(Math.max(0, (progress - 0.80) / 0.20), 2.0);
@@ -115,7 +121,7 @@ export const Particles: React.FC<ParticlesProps> = ({
       const baseSize = 1.8 + seed(i, 0) * 2.5;
       size           = (baseSize + energy * 3.0) * Math.max(0.3, 1 - travelProgress * 0.45);
 
-      opacity = fadeIn * fadeOut * Math.min(1, 0.25 + energy * 3.5);
+      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.3 + energy * 2.5);
 
     } else if (isInward) {
       // ── Inward — edges toward center ────────────────────────────────────
@@ -142,7 +148,7 @@ export const Particles: React.FC<ParticlesProps> = ({
 
       // Fade in at edge; start fading at 65% travel, gone by 85%
       const fadeOut_in = 1 - Math.pow(Math.max(0, (progress - 0.65) / 0.20), 1.5);
-      opacity = fadeIn * fadeOut_in * Math.min(1, 0.25 + energy * 3.5);
+      opacity = fadeIn * fadeOut_in * particleBrightness * Math.min(1, 0.3 + energy * 2.5);
 
     } else {
       // ── Directional mist (up/down/left/right) ─────────────────────────────
@@ -180,7 +186,7 @@ export const Particles: React.FC<ParticlesProps> = ({
       const baseSize = 2.5 + seed(i, 0) * 3.5;
       size           = (baseSize + energy * 3.0) * Math.max(0.3, 1 - travelProgress * 0.35);
 
-      opacity = fadeIn * fadeOut * Math.min(1, 0.35 + energy * 3.5);
+      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.45 + energy * 2.5);
     }
 
     if (opacity < 0.02) continue;
