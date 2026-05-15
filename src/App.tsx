@@ -472,71 +472,17 @@ export const App = () => {
             2. Visual Design
           </div>
           <div className="control-group">
-            <label>Layout</label>
-            <select className="select-input" value={layout} onChange={e => setLayout(e.target.value as VisualizerLayout)}>
-              {layouts.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-            </select>
-          </div>
-          <div className="control-group">
             <label>Theme</label>
             <select className="select-input" value={themeId} onChange={e => setThemeId(Number(e.target.value))}>
               {themes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </div>
-
-          <div className="toggle-group">
-            <label>Particles</label>
-            <label className="switch">
-              <input type="checkbox" checked={showParticles} onChange={e => handleToggleParticles(e.target.checked)} />
-              <span className="slider"></span>
-            </label>
-          </div>
-
-          {showParticles && (
-            <div className="advanced-panel">
-              <div className="control-group">
-                <label>Direction</label>
-                <select className="select-input" value={particleDirection} onChange={e => setParticleDirection(e.target.value)}>
-                  <option value="auto">Auto</option>
-                  <option value="up">Up</option>
-                  <option value="down">Down</option>
-                  <option value="in">Inwards</option>
-                  <option value="out">Outwards</option>
-                </select>
-              </div>
-              <div className="control-group">
-                <label>Speed <span className="label-value">{parseFloat((particleSpeed / 0.3).toFixed(1))}x</span></label>
-                <input type="range" className="range-input" min="0.05" max="0.55" step="0.025" value={particleSpeed} onChange={e => setParticleSpeed(Number(e.target.value))} />
-              </div>
-              <div className="control-group">
-                <label>Amount <span className="label-value">{Math.round(particleCount / 2.0 * 100)}%</span></label>
-                <input type="range" className="range-input" min="0.25" max="4" step="0.25" value={particleCount} onChange={e => setParticleCount(Number(e.target.value))} />
-              </div>
-              <div className="toggle-group">
-                <label>Audio Reactive</label>
-                <label className="switch">
-                  <input type="checkbox" checked={particlePulse} onChange={e => setParticlePulse(e.target.checked)} />
-                  <span className="slider"></span>
-                </label>
-              </div>
-            </div>
-          )}
-
           <div className="control-group">
-            <label>Texture</label>
-            <select className="select-input" value={overlayType} onChange={e => setOverlayType(e.target.value)}>
-              <option value="none">None</option>
-              <option value="scanlines">Scan Lines</option>
-              <option value="light-leak">Light Leak</option>
+            <label>Layout</label>
+            <select className="select-input" value={layout} onChange={e => setLayout(e.target.value as VisualizerLayout)}>
+              {layouts.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>
           </div>
-
-          {overlayType === "light-leak" && (
-            <div className="control-group">
-              <label>Intensity <span className="label-value">{Math.round(overlayOpacity * 100)}%</span></label>
-              <input type="range" className="range-input" min={0} max={1} step={0.01} value={overlayOpacity} onChange={e => setOverlayOpacity(parseFloat(e.target.value))} />
-            </div>
-          )}
 
           {/* Fine-tune collapsible */}
           <button className={`fine-tune-toggle${fineTuneOpen ? " open" : ""}`} onClick={() => setFineTuneOpen(!fineTuneOpen)}>
@@ -606,6 +552,60 @@ export const App = () => {
                   </div>
                 </>
               )}
+            </div>
+          )}
+
+          <div className="toggle-group">
+            <label>Particles</label>
+            <label className="switch">
+              <input type="checkbox" checked={showParticles} onChange={e => handleToggleParticles(e.target.checked)} />
+              <span className="slider"></span>
+            </label>
+          </div>
+
+          {showParticles && (
+            <div className="advanced-panel">
+              <div className="control-group">
+                <label>Direction</label>
+                <select className="select-input" value={particleDirection} onChange={e => setParticleDirection(e.target.value)}>
+                  <option value="auto">Auto</option>
+                  <option value="up">Up</option>
+                  <option value="down">Down</option>
+                  <option value="in">Inwards</option>
+                  <option value="out">Outwards</option>
+                </select>
+              </div>
+              <div className="control-group">
+                <label>Speed <span className="label-value">{parseFloat((particleSpeed / 0.3).toFixed(1))}x</span></label>
+                <input type="range" className="range-input" min="0.05" max="0.55" step="0.025" value={particleSpeed} onChange={e => setParticleSpeed(Number(e.target.value))} />
+              </div>
+              <div className="control-group">
+                <label>Amount <span className="label-value">{Math.round(particleCount / 2.0 * 100)}%</span></label>
+                <input type="range" className="range-input" min="0.25" max="4" step="0.25" value={particleCount} onChange={e => setParticleCount(Number(e.target.value))} />
+              </div>
+              <div className="toggle-group">
+                <label>Audio Reactive</label>
+                <label className="switch">
+                  <input type="checkbox" checked={particlePulse} onChange={e => setParticlePulse(e.target.checked)} />
+                  <span className="slider"></span>
+                </label>
+              </div>
+            </div>
+          )}
+
+          <div className="control-group">
+            <label>Texture</label>
+            <select className="select-input" value={overlayType} onChange={e => setOverlayType(e.target.value)}>
+              <option value="none">None</option>
+              <option value="scanlines">Scan Lines</option>
+              <option value="light-leak">Light Leak</option>
+            </select>
+          </div>
+
+          {overlayType === "light-leak" && (
+            <div className="control-group">
+              <label>Intensity <span className="label-value">{Math.round(overlayOpacity * 100)}%</span></label>
+              <input type="range" className="range-input" min={0} max={1} step={0.01} value={overlayOpacity} onChange={e => setOverlayOpacity(parseFloat(e.target.value))} />
             </div>
           )}
 
