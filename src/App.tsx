@@ -599,6 +599,15 @@ export const App = () => {
         </div>
 
         <div className="sidebar-footer">
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", lineHeight: 1.6, marginBottom: 10, padding: "10px 12px", background: "rgba(255,255,255,0.04)", borderRadius: 10 }}>
+            💡 <strong style={{ color: "rgba(255,255,255,0.7)" }}>Get sharper video quality:</strong> In Chrome, go to{" "}
+            <span
+              style={{ fontFamily: "monospace", background: "rgba(255,255,255,0.08)", padding: "1px 5px", borderRadius: 4, userSelect: "all", cursor: "text", color: "rgba(255,255,255,0.65)" }}
+            >
+              chrome://flags/#canvas-draw-element
+            </span>
+            {" "}→ set to <strong style={{ color: "rgba(255,255,255,0.7)" }}>Enabled</strong> → relaunch Chrome.
+          </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <button
               className="primary-button"
