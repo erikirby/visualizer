@@ -217,6 +217,8 @@ export const App = () => {
   const [showHelp, setShowHelp] = useState(false);
   const [canExport, setCanExport] = useState<boolean | null>(null);
   const [audioReady, setAudioReady] = useState(false);
+  const [showSetupTip, setShowSetupTip] = useState(() => !localStorage.getItem('kv-setup-dismissed'));
+  const dismissSetupTip = () => { localStorage.setItem('kv-setup-dismissed', '1'); setShowSetupTip(false); };
 
 
 
@@ -699,6 +701,15 @@ export const App = () => {
         </div>
 
         <div className="sidebar-footer">
+          {showSetupTip && (
+            <div className="setup-tip">
+              <span>
+                💡 One-time Chrome setup improves image export quality.{" "}
+                <button onClick={() => setShowHelp(true)} className="setup-tip-link">Details</button>
+              </span>
+              <button onClick={dismissSetupTip} className="setup-tip-dismiss" title="Dismiss">✕</button>
+            </div>
+          )}
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <button
               className="primary-button"
@@ -724,11 +735,11 @@ export const App = () => {
       {showHelp && (
         <div
           onClick={() => setShowHelp(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{ background: "#111126", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: "36px 40px", maxWidth: 480, width: "90%", position: "relative" }}
+            style={{ background: "#111126", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, maxWidth: 540, width: "100%", maxHeight: "88vh", overflowY: "auto", position: "relative", padding: "36px 40px" }}
           >
             <button onClick={() => setShowHelp(false)} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", color: "var(--text-secondary)", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
             <h2 style={{ fontFamily: "Syne, sans-serif", fontSize: 22, fontWeight: 700, background: "linear-gradient(90deg, #FF2D9B, #00B4FF)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", marginBottom: 8 }}>Kirbai Vision</h2>
