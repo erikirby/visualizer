@@ -34,35 +34,45 @@ const VIDEO_FILL_STYLE: React.CSSProperties = {
 // correct frame to be seeked before taking a screenshot.
 const SeekableVideo: React.FC<{ src: string; frameTime: number }> = ({ src, frameTime }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const handleRef = useRef<ReturnType<typeof delayRender> | null>(null);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    if (Math.abs(video.currentTime - frameTime) < 0.002) return;
+    const handle = delayRender("video-bg-seek");
+    let resolved = false;
 
-    handleRef.current = delayRender("video-bg-seek");
-    const handle = handleRef.current;
+    const finish = () => {
+      if (resolved) return;
+      resolved = true;
+      continueRender(handle);
+    };
 
-    const cleanup = () => {
-      video.removeEventListener("seeked", onSeeked);
+    const timeout = setTimeout(finish, 5000);
+
+    const doSeek = () => {
+      if (Math.abs(video.currentTime - frameTime) < 0.002) {
+        finish();
+        return;
+      }
+      video.addEventListener("seeked", finish, { once: true });
+      video.currentTime = frameTime;
+    };
+
+    if (video.readyState >= 1) {
+      doSeek();
+    } else {
+      video.addEventListener("loadedmetadata", doSeek, { once: true });
+    }
+
+    // Always resolve when this effect tears down — prevents orphaned handles
+    return () => {
       clearTimeout(timeout);
+      video.removeEventListener("loadedmetadata", doSeek);
+      video.removeEventListener("seeked", finish);
+      finish();
     };
-    const onSeeked = () => {
-      cleanup();
-      continueRender(handle);
-    };
-    const timeout = setTimeout(() => {
-      cleanup();
-      continueRender(handle);
-    }, 3000);
-
-    video.addEventListener("seeked", onSeeked);
-    video.currentTime = frameTime;
-
-    return cleanup;
-  }, [frameTime]);
+  }, [frameTime, src]);
 
   return (
     <video
@@ -70,6 +80,7 @@ const SeekableVideo: React.FC<{ src: string; frameTime: number }> = ({ src, fram
       src={src}
       muted
       playsInline
+      preload="auto"
       style={{ ...VIDEO_FILL_STYLE, position: "absolute", inset: 0 }}
     />
   );

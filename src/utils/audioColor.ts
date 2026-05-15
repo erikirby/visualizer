@@ -69,8 +69,8 @@ export function logRemap(visualization: readonly number[], numBars: number): num
 export function getMusicViz(
   rawFft: readonly number[],
   numBars: number,
-  scalar = 6,
-  treble = 3.0,
+  scalar = 2.5,
+  treble = 1.8,
 ): number[] {
   if (rawFft.length === 0) return new Array(numBars).fill(0);
 
@@ -87,8 +87,7 @@ export function getMusicViz(
     const frac     = rawIndex - lo;
     const v        = (rawFft[lo] ?? 0) * (1 - frac) + (rawFft[hi] ?? 0) * frac;
     const boost = scalar * (1 + Math.pow(t, 0.7) * treble);
-    const bv    = v * boost;
-    result.push(bv <= 0.72 ? bv : 0.72 + (bv - 0.72) * 0.12);
+    result.push(Math.tanh(v * boost));
   }
   return result;
 }

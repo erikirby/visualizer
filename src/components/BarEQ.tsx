@@ -72,7 +72,7 @@ export const BarEQ: React.FC<BarEQProps> = ({
 
   const BAR_W   = compact ? 11 : 18;
   const BAR_GAP = compact ? 5  : 7;
-  const MAX_H   = compact ? 140 : 300;
+  const MAX_H   = compact ? 200 : 420;
   const TOTAL_W = NUM_BARS * (BAR_W + BAR_GAP) - BAR_GAP;
   const START_X = (CANVAS_W - TOTAL_W) / 2;
 
@@ -112,12 +112,10 @@ export const BarEQ: React.FC<BarEQProps> = ({
     }
 
     const peak        = bandPeaks[i] ?? 0.08;
-    const normed      = (raw / peak) * 0.55;
-    // Rumble: deterministic noise so Remotion's frame-parallel render is safe
+    const normed      = (raw / peak) * 0.80;
     const rumbleNoise = rumble ? Math.sin(frame * 13.7 + i * 3.9) * 0.04 : 0;
     const ambient     = 0.015 + 0.015 * Math.sin(t * 3 + i * 0.45);
-    const v = normed + rumbleNoise;
-    return Math.max(ambient, v <= 0.72 ? v : 0.72 + (v - 0.72) * 0.12);
+    return Math.max(ambient, normed + rumbleNoise);
   });
 
   const bassEnergy = visualization.slice(0, 4).reduce((a: number, b: number) => a + b, 0) / 4;

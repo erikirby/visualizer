@@ -13,7 +13,7 @@ interface FrequencyRingsProps {
 // Inner = sub-bass, outer = air frequencies
 const BANDS = 6;
 const BASE_RADII  = [80, 155, 230, 305, 380, 455];
-const MAX_EXPAND  = 40;   // max px a ring expands at full energy
+const MAX_EXPAND  = 60;   // max px a ring expands at full energy
 const CANVAS_W    = 1920;
 const CANVAS_H    = 1080;
 
@@ -44,8 +44,7 @@ export const FrequencyRings: React.FC<FrequencyRingsProps> = ({
     const end   = Math.floor((i + 1) * binsPerBand);
     const slice = raw.slice(start, end);
     const avg   = slice.reduce((a, b) => a + b, 0) / Math.max(slice.length, 1);
-    const v = avg;
-    return v <= 0.65 ? v : 0.65 + (v - 0.65) * 0.2;
+    return avg;
   });
 
   // Glow size driven by overall energy

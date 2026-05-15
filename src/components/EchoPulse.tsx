@@ -15,7 +15,7 @@ interface EchoPulseProps {
 
 const NUM_BARS   = 80;
 const INNER_R    = 200;
-const MAX_BAR_H  = 300;
+const MAX_BAR_H  = 320;
 const BAR_WIDTH  = 4;
 const CANVAS_W   = 1920;
 const CANVAS_H   = 1080;
@@ -26,10 +26,8 @@ const SEAM_BLEND = 8;   // bars on the trailing edge that get smoothed
 // Solid variant is scaled down so it doesn't fill the full frame
 const SOLID_BAR_SCALE = 0.60;  // max radius = 200 + 400*0.6 = 440px
 
-// Soft saturation — value curves up but never hits the hard ceiling
-function soft(v: number): number {
-  return v <= 0.65 ? v : 0.65 + (v - 0.65) * 0.2;
-}
+// tanh is applied upstream in getMusicViz — pass through directly
+function soft(v: number): number { return v; }
 
 // ── Seam smoothing ────────────────────────────────────────────────────────────
 // The original frequency mapping (bass→treble clockwise) is preserved untouched.
