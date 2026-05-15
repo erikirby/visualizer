@@ -82,11 +82,13 @@ export const FullWidthBars: React.FC<FullWidthBarsProps> = ({
   for (let i = 0; i < NUM_BARS; i++) {
     const peak    = bandPeaks[i] ?? 0.08;
     const raw     = viz[i] ?? 0;
-    // Normalize to peak, scale to 0.65 so there's always headroom
-    const normed  = (raw / peak) * 0.65;
+    // Normalize to peak, scale to 0.45 — bars layout reads better with subtler movement
+    const normed  = (raw / peak) * 0.45;
+    // Soft saturation above 0.65 so bars never hit the hard ceiling
+    const softVal = normed <= 0.65 ? normed : 0.65 + (normed - 0.65) * 0.2;
     // Tiny ambient pulse so bars are never completely dead
     const ambient = 0.015 + 0.012 * Math.sin(frame * 0.06 + i * 0.38);
-    const value   = Math.max(ambient, Math.min(1, normed));
+    const value   = Math.max(ambient, softVal);
 
     const h     = value * MAX_H;
     const x     = i * BAR_UNIT;
