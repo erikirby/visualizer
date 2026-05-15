@@ -3,14 +3,16 @@ import {
   AbsoluteFill,
   Img,
   OffthreadVideo,
-  Video,
   Sequence,
   Loop,
   staticFile,
   useCurrentFrame,
   useVideoConfig,
-  getRemotionEnvironment,
 } from "remotion";
+// <Video> from @remotion/media is the only video component supported in
+// renderMediaOnWeb (client-side rendering). Neither <OffthreadVideo> nor
+// <Video> from "remotion" (Html5Video) work in the web renderer.
+import { Video } from "@remotion/media";
 
 interface VisualBackgroundProps {
   bassScale?: number;
@@ -50,7 +52,6 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
   // Data URLs are self-contained — no network fetch, no buffering-detector issue,
   // works identically in the Player preview and renderMediaOnWeb export.
   const isDataUrl = src.startsWith("data:");
-  const { isRendering } = getRemotionEnvironment();
 
   const t = frame / fps;
 
@@ -65,18 +66,15 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
     if (!isVideo) return null;
 
     if (isDataUrl) {
-      // Player preview: <Video> (Html5Video) plays data URLs natively.
-      // Export (renderMediaOnWeb): <Video>/Html5Video is blocked — must use OffthreadVideo.
-      // Data URLs ARE fetchable by OffthreadVideo (unlike blob: URLs), so this works.
-      const VideoComp = isRendering ? OffthreadVideo : Video;
+      // @remotion/media <Video> works in both Player preview and renderMediaOnWeb export.
       if (bgVideoDurationInFrames) {
         return (
           <Loop durationInFrames={bgVideoDurationInFrames}>
-            <VideoComp src={src} muted style={VIDEO_FILL_STYLE} />
+            <Video src={src} muted style={VIDEO_FILL_STYLE} />
           </Loop>
         );
       }
-      return <VideoComp src={src} muted style={VIDEO_FILL_STYLE} />;
+      return <Video src={src} muted style={VIDEO_FILL_STYLE} />;
     }
 
     if (bgLoopType === "pingpong" && bgVideoDurationInFrames && bgReversedSrc) {
