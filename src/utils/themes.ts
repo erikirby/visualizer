@@ -41,12 +41,12 @@ const IRIDESCENT_PAIRS: [string, string][] = [
 ];
 
 const PASTEL_PAIRS: [string, string][] = [
-  ["#FF80BF", "#80BFFF"],   // vibrant pink → vibrant blue
-  ["#80BFFF", "#FFF580"],   // vibrant blue → vibrant yellow
-  ["#FFF580", "#BF80FF"],   // vibrant yellow → vibrant lavender
-  ["#BF80FF", "#80FFCC"],   // vibrant lavender → vibrant mint
-  ["#80FFCC", "#FFBF80"],   // vibrant mint → vibrant peach
-  ["#FFBF80", "#FF80BF"],   // vibrant peach → vibrant pink (loops back)
+  ["#FF1493", "#1E90FF"],   // deep pink → electric blue
+  ["#1E90FF", "#FFD700"],   // electric blue → golden yellow
+  ["#FFD700", "#9400FF"],   // golden yellow → vivid purple
+  ["#9400FF", "#00E87A"],   // vivid purple → vivid green
+  ["#00E87A", "#FF6200"],   // vivid green → vivid orange
+  ["#FF6200", "#FF1493"],   // vivid orange → deep pink (loops back)
 ];
 
 /** Resolve a theme by id; falls back to Neon if unknown. */
