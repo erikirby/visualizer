@@ -301,7 +301,7 @@ export const App = () => {
         },
         inputProps,
         container: "mp4",
-        videoBitrate: "12M",
+        videoBitrate: 12_000_000,
         onProgress: ({ progress }) => setProgress(Math.round(progress * 100)),
       });
 
