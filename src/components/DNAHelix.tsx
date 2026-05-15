@@ -44,11 +44,21 @@ export const DNAHelix: React.FC<DNAHelixProps> = ({
 
   const t = frame / fps;
 
-  // Audio reactivity
-  const viz        = audioData ? visualizeAudio({ fps, frame, audioData, numberOfSamples: 128, smoothing: true }) : [];
-  const bars       = audioData ? getMusicViz(viz as any, 128, spectrumType) : new Array(128).fill(0);
+  // Audio reactivity — Aggressive Temporal Smoothing
+  // Sample a 3-frame window to "round off" sudden jumps/spikes
+  const viz = audioData ? [0, 1, 2].map(offset => {
+    const targetFrame = Math.max(0, frame - offset);
+    return visualizeAudio({ fps, frame: targetFrame, audioData, numberOfSamples: 128, smoothing: true });
+  }) : [];
+
+  // Average the samples
+  const averagedViz = viz.length > 0 ? viz[0].map((_, i) => {
+    return (viz[0][i] + (viz[1]?.[i] ?? 0) + (viz[2]?.[i] ?? 0)) / 3;
+  }) : new Array(128).fill(0);
+
+  const bars       = getMusicViz(averagedViz as any, 128, spectrumType);
   const bassEnergy = getBassEnergy(bars);
-  const bassScale  = 1 + bassEnergy * 0.22; // softened from 0.45
+  const bassScale  = 1 + bassEnergy * 0.32; // restored intensity slightly now that it's smooth
   const energy     = bars.reduce((a, b) => a + (b as number), 0) / bars.length;
 
   // Steady, constant spin
