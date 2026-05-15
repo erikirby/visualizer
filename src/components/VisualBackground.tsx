@@ -55,19 +55,20 @@ const SeekableVideo: React.FC<{ src: string; frameTime: number }> = ({ src, fram
   );
 };
 
-// Export: draws each video frame onto a <canvas> so Remotion's canvas capture can see it.
-// A plain <video> element is invisible to canvas capture (browser security rule).
-// Canvas drawn from a same-origin blob URL is NOT tainted and CAN be captured.
+// Export: draws each video frame onto a <canvas> so Remotion's canvas capture sees it.
+// Key rules:
+//   1. The hidden <video> must be full-size — browsers skip decoding invisible/1px elements.
+//   2. Wait for requestVideoFrameCallback (fires when compositor has the new frame ready),
+//      not just "seeked" (which fires when currentTime updates, before the frame is composited).
 const CanvasVideoRenderer: React.FC<{ src: string; frameTime: number }> = ({ src, frameTime }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const handleRef = useRef<number | null>(null);
   const lastFrameRef = useRef<number | null>(null);
 
-  // Create the delayRender handle synchronously during render so the renderer
-  // waits before any effects run — this is the correct Remotion pattern.
+  // Create delayRender during render so the renderer waits before effects run.
   if (lastFrameRef.current !== frameTime) {
-    if (handleRef.current !== null) continueRender(handleRef.current); // resolve previous
+    if (handleRef.current !== null) continueRender(handleRef.current);
     handleRef.current = delayRender("canvas-video-frame");
     lastFrameRef.current = frameTime;
   }
@@ -85,7 +86,7 @@ const CanvasVideoRenderer: React.FC<{ src: string; frameTime: number }> = ({ src
       continueRender(handle);
     };
 
-    const timeout = setTimeout(finish, 5000);
+    const timeout = setTimeout(finish, 8000);
 
     const draw = () => {
       if (video.videoWidth > 0) {
@@ -96,13 +97,23 @@ const CanvasVideoRenderer: React.FC<{ src: string; frameTime: number }> = ({ src
       finish();
     };
 
-    const doSeek = () => {
-      if (Math.abs(video.currentTime - frameTime) < 0.01 && video.readyState >= 2) {
-        setTimeout(draw, 20);
+    // requestVideoFrameCallback fires when the browser has the decoded frame ready
+    // for display — more reliable than seeked+setTimeout for knowing the frame is composited.
+    const waitForFrame = () => {
+      if ("requestVideoFrameCallback" in video) {
+        (video as any).requestVideoFrameCallback(draw);
       } else {
-        video.addEventListener("seeked", () => setTimeout(draw, 20), { once: true });
-        try { video.currentTime = frameTime; } catch { draw(); }
+        setTimeout(draw, 50);
       }
+    };
+
+    const doSeek = () => {
+      if (Math.abs(video.currentTime - frameTime) < 0.001 && video.readyState >= 2) {
+        waitForFrame();
+        return;
+      }
+      video.addEventListener("seeked", waitForFrame, { once: true });
+      try { video.currentTime = frameTime; } catch { draw(); }
     };
 
     if (video.readyState >= 1) {
@@ -114,19 +125,21 @@ const CanvasVideoRenderer: React.FC<{ src: string; frameTime: number }> = ({ src
     return () => {
       clearTimeout(timeout);
       video.removeEventListener("loadedmetadata", doSeek);
+      video.removeEventListener("seeked", waitForFrame);
       finish();
     };
   }, [frameTime, src]);
 
   return (
     <>
+      {/* Full-size but invisible — browser will skip decoding a 1px or opacity:0 video */}
       <video
         ref={videoRef}
         src={src}
         muted
         playsInline
         preload="auto"
-        style={{ position: "absolute", opacity: 0, width: 1, height: 1, pointerEvents: "none" }}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.001, pointerEvents: "none" }}
       />
       <canvas ref={canvasRef} style={{ ...VIDEO_FILL_STYLE, position: "absolute", inset: 0 }} />
     </>
