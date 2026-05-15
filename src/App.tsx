@@ -125,9 +125,9 @@ export const App = () => {
   const [audioDuration, setAudioDuration] = useState<number>(30);
 
   const presets = [
-    { id: "midnight", name: "Midnight Cinematic", config: { themeId: 7, layout: "constellation", showParticles: true, particleDirection: "in", overlayType: "light-leak", overlayOpacity: 0.4 } },
-    { id: "electric", name: "Electric Pulse", config: { themeId: 5, layout: "solidwave", showParticles: true, particleDirection: "up", overlayType: "scanlines", overlayOpacity: 0.3 } },
-    { id: "minimal", name: "Modern Minimal", config: { themeId: 3, layout: "bottom", showParticles: false, overlayType: "none" } },
+    { id: "midnight", name: "Neon Constellation", config: { themeId: 1, layout: "constellation", showParticles: true, particleDirection: "in", overlayType: "light-leak", overlayOpacity: 0.4 } },
+    { id: "electric", name: "Acid Wave", config: { themeId: 5, layout: "solidwave", showParticles: true, particleDirection: "up", overlayType: "scanlines", overlayOpacity: 0.3 } },
+    { id: "minimal", name: "Ice Cold", config: { themeId: 3, layout: "bottom", showParticles: false, overlayType: "none" } },
     { id: "iridescent", name: "Iridescent Orbit", config: { themeId: 9, layout: "echo", showParticles: true, particleDirection: "out", overlayType: "light-leak", overlayOpacity: 0.4 } },
   ];
 
@@ -295,7 +295,7 @@ export const App = () => {
               title="How to use"
             >?</button>
           </div>
-          <p>Lyric Video Creator</p>
+          <p>Visualizer & Lyric Video Creator</p>
         </div>
 
         <div className="sidebar-content">
