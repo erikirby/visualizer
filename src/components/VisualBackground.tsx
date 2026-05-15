@@ -30,8 +30,19 @@ const VIDEO_FILL_STYLE: React.CSSProperties = {
   objectPosition: "center center",
 };
 
-// Renders a pre-extracted JPEG frame for the current composition frame.
-// No video element, no canvas, no allowHtmlInCanvas — pure internal Remotion render.
+// Preview: plain <video> plays normally in the Remotion Player.
+const BlobVideoPreview: React.FC<{ src: string }> = ({ src }) => (
+  <video
+    src={src}
+    autoPlay
+    muted
+    loop
+    playsInline
+    style={{ ...VIDEO_FILL_STYLE, position: "absolute", inset: 0 }}
+  />
+);
+
+// Export: uses pre-extracted JPEG frames — pure internal Remotion render, no screen capture.
 const BlobVideoFrame: React.FC<{ src: string; durationInFrames: number }> = ({ src, durationInFrames }) => {
   const frame = useCurrentFrame();
   const loopedFrame = durationInFrames > 0 ? frame % durationInFrames : frame;
@@ -47,6 +58,7 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
   bgLoopType,
   bgReversedSrc,
   bgVideoDurationInFrames,
+  isExporting = false,
 }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames: totalFrames } = useVideoConfig();
@@ -68,6 +80,7 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
     if (!isVideo) return null;
 
     if (isBlob) {
+      if (!isExporting) return <BlobVideoPreview src={src} />;
       const validDuration = (bgVideoDurationInFrames && bgVideoDurationInFrames > 0 && isFinite(bgVideoDurationInFrames))
         ? bgVideoDurationInFrames
         : totalFrames;
