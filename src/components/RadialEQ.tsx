@@ -27,12 +27,14 @@ export const RadialEQ: React.FC<RadialEQProps> = ({ audioSrc, layout }) => {
   const bandPeaks = React.useMemo(() => {
     if (!audioData) return new Array(NUM_BARS).fill(0.08);
     const total = Math.floor(audioData.durationInSeconds * fps);
-    const refs = [0.15, 0.3, 0.45, 0.6, 0.75].map((pct) =>
-      getMusicViz(
+    const halfBars = Math.floor(NUM_BARS / 2);
+    const refs = [0.15, 0.3, 0.45, 0.6, 0.75].map((pct) => {
+      const halfViz = getMusicViz(
         visualizeAudio({ fps, frame: Math.max(0, Math.min(Math.floor(pct * total), total - 1)), audioData, numberOfSamples: 256, smoothing: false }),
-        NUM_BARS,
-      )
-    );
+        halfBars,
+      );
+      return [...halfViz].reverse().concat(halfViz);
+    });
     return Array.from({ length: NUM_BARS }, (_, i) => Math.max(...refs.map((r) => r[i] ?? 0), 0.08));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioData, fps]);
@@ -41,10 +43,12 @@ export const RadialEQ: React.FC<RadialEQProps> = ({ audioSrc, layout }) => {
 
   const t = frame / fps;
 
-  const rawViz = getMusicViz(
+  const halfBars = Math.floor(NUM_BARS / 2);
+  const rawHalf = getMusicViz(
     visualizeAudio({ fps, frame, audioData, numberOfSamples: 256, smoothing: true }),
-    NUM_BARS,
+    halfBars,
   );
+  const rawViz = [...rawHalf].reverse().concat(rawHalf);
 
   const visualization = rawViz.map((v, i) => {
     const peak    = bandPeaks[i] ?? 0.08;
@@ -54,7 +58,8 @@ export const RadialEQ: React.FC<RadialEQProps> = ({ audioSrc, layout }) => {
   });
 
   const dimColor   = getCycleColor(frame, fps, 28 * 1.5);
-  const bassEnergy = visualization.slice(0, 4).reduce((a: number, b: number) => a + b, 0) / 4;
+  // Calculate bass energy using the unmirrored raw half (where bass is at index 0)
+  const bassEnergy = rawHalf.slice(0, 4).reduce((a: number, b: number) => a + b, 0) / 4;
   const glowSize   = 3 + bassEnergy * 12;
 
   const cx = CANVAS_W / 2;

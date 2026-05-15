@@ -22,30 +22,13 @@ const CANVAS_H   = 1080;
 const ECHO_COUNT = 5;
 const ECHO_GAP   = 7;
 
-const SEAM_BLEND = 8;   // bars on the trailing edge that get smoothed
 // Solid variant is scaled down so it doesn't fill the full frame
 const SOLID_BAR_SCALE = 0.60;  // max radius = 200 + 400*0.6 = 440px
 
 // tanh is applied upstream in getMusicViz — pass through directly
 function soft(v: number): number { return v; }
 
-// ── Seam smoothing ────────────────────────────────────────────────────────────
-// The original frequency mapping (bass→treble clockwise) is preserved untouched.
-// Only the HEIGHT of the last SEAM_BLEND bars is linearly ramped toward bar 0's
-// height, so the amplitude cliff at the seam becomes a gradual taper.
-// Colors (getFreqColor) are NOT changed — only amplitudes.
-function applySeamBlend(bars: readonly number[]): number[] {
-  const n  = bars.length;
-  const h0 = bars[0] ?? 0;
-  return bars.map((h, i) => {
-    const distFromEnd = n - 1 - i;
-    if (distFromEnd >= SEAM_BLEND) return h;
-    // t = 0 at the very last bar → fully becomes h0
-    // t = 1 at the blend boundary → fully unchanged
-    const t = distFromEnd / SEAM_BLEND;
-    return h * t + h0 * (1 - t);
-  });
-}
+
 
 // ── Smooth closed radial path (Catmull-Rom) ────────────────────────────────
 // `rs[i]` = radius at angular position i/n * 2π (starting from 12 o'clock).
@@ -97,22 +80,26 @@ export const EchoPulse: React.FC<EchoPulseProps> = ({
 
   if (!audioData) return null;
 
-  const rawBars  = getMusicViz(
+  const halfBars = Math.floor(NUM_BARS / 2);
+  const rawHalf  = getMusicViz(
     visualizeAudio({ fps, frame, audioData, numberOfSamples: 256, smoothing: true }),
-    NUM_BARS,
+    halfBars,
   );
-  // Seam-blended bars: original frequency mapping, heights tapered at the wrap point
-  const liveBars = applySeamBlend(rawBars);
+  // Mirror the bars (Treble -> Bass -> Treble) so the circle is symmetric 
+  // and both sides react fully. Because both ends are Treble (near 0 energy),
+  // they blend seamlessly without needing artificial seam smoothing.
+  const liveBars = [...rawHalf].reverse().concat(rawHalf);
 
   const cx = CANVAS_W / 2;
   const cy = CANVAS_H / 2;
   const t  = frame / fps;
 
   const mainColor   = getCycleColor(frame, fps, 28, colorA, colorB);
+  const bassEnergyRaw = getBassEnergy(rawHalf);
   // Solid mode uses a gentler glow so the diffuse halo doesn't blow out the shape
   const glowSize    = variant === "solid"
-    ? 2 + getBassEnergy(rawBars) * 5
-    : 3 + getBassEnergy(rawBars) * 10;
+    ? 2 + bassEnergyRaw * 5
+    : 3 + bassEnergyRaw * 10;
   const rotationDeg = (t * 2.5) % 360;
 
   // Echo rings — trailing bass-energy history, ripple outward
