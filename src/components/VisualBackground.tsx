@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React from "react";
 import {
   AbsoluteFill,
   Img,
@@ -8,10 +8,8 @@ import {
   staticFile,
   useCurrentFrame,
   useVideoConfig,
-  delayRender,
-  continueRender,
 } from "remotion";
-import { videoFrameCache } from "../utils/videoFrameCache";
+import { Video } from "@remotion/media";
 
 interface VisualBackgroundProps {
   bassScale?: number;
@@ -32,130 +30,23 @@ const VIDEO_FILL_STYLE: React.CSSProperties = {
   objectPosition: "center center",
 };
 
-// Preview: plain <video> seeking to frame time. Works in the Player, not in export.
-const SeekableVideo: React.FC<{ src: string; frameTime: number }> = ({ src, frameTime }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    if (isFinite(frameTime) && Math.abs(video.currentTime - frameTime) > 0.05) {
-      try { video.currentTime = frameTime; } catch {}
-    }
-  }, [frameTime, src]);
-
-  return (
-    <video
-      ref={videoRef}
-      src={src}
-      muted
-      playsInline
-      preload="auto"
-      style={{ ...VIDEO_FILL_STYLE, position: "absolute", inset: 0 }}
-    />
-  );
+// CSS cover without relying on objectFit — works in canvas capture contexts where
+// objectFit may be ignored. The outer div clips overflow; the inner element is
+// sized to at least fill both dimensions and centered.
+const COVER_OUTER: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  overflow: "hidden",
 };
-
-// Export: draws each video frame onto a <canvas> so Remotion's canvas capture sees it.
-// If a pre-decoded frame cache exists (built before render starts), uses that for
-// frame-exact, instant lookup. Falls back to seek + requestVideoFrameCallback otherwise.
-const CanvasVideoRenderer: React.FC<{ src: string; frameTime: number }> = ({ src, frameTime }) => {
-  const { fps } = useVideoConfig();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const handleRef = useRef<number | null>(null);
-  const lastFrameRef = useRef<number | null>(null);
-
-  // Create delayRender during render so the renderer waits before effects run.
-  if (lastFrameRef.current !== frameTime) {
-    if (handleRef.current !== null) continueRender(handleRef.current);
-    handleRef.current = delayRender("canvas-video-frame");
-    lastFrameRef.current = frameTime;
-  }
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const handle = handleRef.current;
-    if (!canvas || handle === null) return;
-
-    let resolved = false;
-    const finish = () => {
-      if (resolved) return;
-      resolved = true;
-      continueRender(handle);
-    };
-
-    // Fast path: pre-decoded cache populated before render started
-    const frameIndex = Math.round(frameTime * fps);
-    const cached = videoFrameCache.get(src)?.get(frameIndex);
-    if (cached) {
-      canvas.width = cached.width;
-      canvas.height = cached.height;
-      canvas.getContext("2d")?.drawImage(cached, 0, 0);
-      finish();
-      return;
-    }
-
-    // Fallback: seek the video element (slower but works without pre-decode)
-    const video = videoRef.current;
-    if (!video) { finish(); return; }
-
-    const timeout = setTimeout(finish, 8000);
-
-    const draw = () => {
-      if (video.videoWidth > 0) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext("2d")?.drawImage(video, 0, 0, canvas.width, canvas.height);
-      }
-      finish();
-    };
-
-    const waitForFrame = () => {
-      if ("requestVideoFrameCallback" in video) {
-        (video as any).requestVideoFrameCallback(draw);
-      } else {
-        setTimeout(draw, 50);
-      }
-    };
-
-    const doSeek = () => {
-      if (Math.abs(video.currentTime - frameTime) < 0.001 && video.readyState >= 2) {
-        waitForFrame();
-        return;
-      }
-      video.addEventListener("seeked", waitForFrame, { once: true });
-      try { video.currentTime = frameTime; } catch { draw(); }
-    };
-
-    if (video.readyState >= 1) {
-      doSeek();
-    } else {
-      video.addEventListener("loadedmetadata", doSeek, { once: true });
-    }
-
-    return () => {
-      clearTimeout(timeout);
-      video.removeEventListener("loadedmetadata", doSeek);
-      video.removeEventListener("seeked", waitForFrame);
-      finish();
-    };
-  }, [frameTime, src, fps]);
-
-  return (
-    <>
-      {/* Hidden video for fallback seek path — kept full-size so browser decodes it */}
-      <video
-        ref={videoRef}
-        src={src}
-        muted
-        playsInline
-        preload="auto"
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.001, pointerEvents: "none" }}
-      />
-      <canvas ref={canvasRef} style={{ ...VIDEO_FILL_STYLE, position: "absolute", inset: 0 }} />
-    </>
-  );
+const COVER_INNER: React.CSSProperties = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  minWidth: "100%",
+  minHeight: "100%",
+  width: "auto",
+  height: "auto",
 };
 
 export const VisualBackground: React.FC<VisualBackgroundProps> = ({
@@ -165,7 +56,6 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
   bgLoopType,
   bgReversedSrc,
   bgVideoDurationInFrames,
-  isExporting = false,
 }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames: totalFrames } = useVideoConfig();
@@ -187,15 +77,19 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
     if (!isVideo) return null;
 
     if (isBlob) {
+      // @remotion/media Video is the only component that works in renderMediaOnWeb
+      // for user-uploaded videos. allowHtmlInCanvas captures it frame-by-frame (slow
+      // but correct). CSS cover trick avoids dark bars when objectFit is ignored.
       const validDuration = (bgVideoDurationInFrames && bgVideoDurationInFrames > 0 && isFinite(bgVideoDurationInFrames))
         ? bgVideoDurationInFrames
         : totalFrames;
-      let frameTime = (frame % validDuration) / fps;
-      if (!isFinite(frameTime)) frameTime = 0;
-
-      return isExporting
-        ? <CanvasVideoRenderer src={src} frameTime={frameTime} />
-        : <SeekableVideo src={src} frameTime={frameTime} />;
+      return (
+        <Loop durationInFrames={validDuration}>
+          <div style={COVER_OUTER}>
+            <Video src={src} muted style={COVER_INNER} />
+          </div>
+        </Loop>
+      );
     }
 
     if (bgLoopType === "pingpong" && bgVideoDurationInFrames && bgReversedSrc) {
