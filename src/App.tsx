@@ -439,7 +439,7 @@ export const App = () => {
 
           {showLyrics && (
              <div className="advanced-panel" style={{ padding: '12px', background: 'rgba(0,0,0,0.15)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-               <textarea className="text-input" rows={3} placeholder="Paste lyrics here..." value={rawLyrics} onChange={e => setRawLyrics(e.target.value)} style={{fontSize: '12px'}} />
+               <textarea className="text-input" rows={3} placeholder="Paste lyrics here..." value={rawLyrics} onChange={e => setRawLyrics(e.target.value.replace(/\[.*?\]/g, "").replace(/\s+/g, " ").trimStart())} style={{fontSize: '12px'}} />
                <button className="primary-button" onClick={handleSync} disabled={isSyncing || !rawLyrics} style={{padding: '8px', fontSize: '12px', background: 'var(--accent-blue)'}}>
                  {isSyncing ? "Syncing..." : syncStatus === "SYNCED" ? "Synced ✓" : "Sync Lyrics"}
                </button>
@@ -479,12 +479,12 @@ export const App = () => {
           >
             <button onClick={() => setShowHelp(false)} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", color: "var(--text-secondary)", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
             <h2 style={{ fontFamily: "Syne, sans-serif", fontSize: 22, fontWeight: 700, background: "linear-gradient(90deg, #FF2D9B, #00B4FF)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", marginBottom: 8 }}>Kirbai Vision</h2>
-            <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 28 }}>Make a lyric video in 4 steps.</p>
+            <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 28 }}>Create a music visualizer in 4 steps.</p>
             {[
-              { n: "1", title: "Upload your audio", body: "MP3 or WAV, up to 200MB. The preview won't play until both audio and background are loaded." },
-              { n: "2", title: "Upload a background", body: "Any image or video file. This becomes the backdrop of your video." },
-              { n: "3", title: "Style it", body: "Pick a layout, theme, and toggle particles or screen pulse. Use the Quick Start presets to get going fast." },
-              { n: "4", title: "Add lyrics & export", body: "Paste your lyrics and hit Sync — AI will time them to the audio. When you're happy with the preview, hit Export MP4. Export requires Chrome or Edge." },
+              { n: "1", title: "Upload your audio", body: "MP3 or WAV, up to 200MB. The preview activates once both audio and a background are loaded." },
+              { n: "2", title: "Upload a background", body: "Any image or video. If your video is shorter than the audio, it will loop continuously to fill the full length." },
+              { n: "3", title: "Style it", body: "Pick a visualizer layout and theme. Toggle particles, screen pulse, and overlays. Use Quick Start presets to get something great fast." },
+              { n: "4", title: "Lyrics (optional) & export", body: "Paste lyrics and hit Sync — AI times them to the audio automatically. Bracket tags like [Verse] and [Chorus] are stripped out on paste, so copying from Suno works perfectly. When you're happy with the preview, hit Export MP4. Export requires Chrome or Edge." },
             ].map(step => (
               <div key={step.n} style={{ display: "flex", gap: 16, marginBottom: 20 }}>
                 <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg, #FF2D9B, #7b2fff)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, flexShrink: 0, marginTop: 2 }}>{step.n}</div>
