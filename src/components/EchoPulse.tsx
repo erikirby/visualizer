@@ -99,15 +99,19 @@ export const EchoPulse: React.FC<EchoPulseProps> = ({
 
   // 3. Seam Smoothing (Only when not mirroring)
   // Blends the high-freq end of the circle into the low-freq start to avoid sharp jumps.
-  if (!reflection && liveBars.length > 0) {
+  if (!reflection && liveBars.length > 10) {
     const n = liveBars.length;
     const startH  = liveBars[0];
-    const stableH = liveBars[n - 4] ?? 0; // Reference height for the "normal" highs
+    const blendRange = 10; // Use a wider window for "aggressive" smoothing
     
-    // Smoothly ramp the last 3 bars between the start and the stable high height
-    liveBars[n - 1] = startH * 0.75 + stableH * 0.25;
-    liveBars[n - 2] = startH * 0.50 + stableH * 0.50;
-    liveBars[n - 3] = startH * 0.25 + stableH * 0.75;
+    for (let i = 1; i <= blendRange; i++) {
+      const idx = n - i;
+      const originalH = liveBars[idx];
+      // Weighted blend: closer to the end = closer to startH
+      const weight = (blendRange - i + 1) / (blendRange + 1); 
+      // Ramp from originalH up/down to startH
+      liveBars[idx] = originalH * (1 - weight) + startH * weight;
+    }
   }
 
   const cx = CANVAS_W / 2;
