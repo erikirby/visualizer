@@ -295,7 +295,9 @@ export const App = () => {
     }
   };
 
-  const handleRender = async () => {
+  const handleRender = async (testMode = false) => {
+    const fullFrames = Math.ceil(audioDuration * 30);
+    const durationInFrames = testMode ? Math.min(150, fullFrames) : fullFrames;
     track('export_started', {
       layout,
       theme_id: themeId,
@@ -303,6 +305,7 @@ export const App = () => {
       particles_on: showParticles,
       lyrics_on: showLyrics,
       overlay: overlayType ?? 'none',
+      test_mode: testMode,
     });
     setIsRendering(true);
     setProgress(0);
@@ -325,7 +328,7 @@ export const App = () => {
           width: 1920,
           height: 1080,
           fps: 30,
-          durationInFrames: Math.ceil(audioDuration * 30),
+          durationInFrames,
           defaultProps: inputProps,
         },
         inputProps,
@@ -335,11 +338,12 @@ export const App = () => {
       });
 
       const blob = await result.getBlob();
-      track('export_completed', { layout, theme_id: themeId });
+      track('export_completed', { layout, theme_id: themeId, test_mode: testMode });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${(artistName || "visualizer").replace(/\s+/g, "-")}-${(trackName || "export").replace(/\s+/g, "-")}.mp4`;
+      const suffix = testMode ? "-5sec-test" : "";
+      a.download = `${(artistName || "visualizer").replace(/\s+/g, "-")}-${(trackName || "export").replace(/\s+/g, "-")}${suffix}.mp4`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -599,14 +603,26 @@ export const App = () => {
         </div>
 
         <div className="sidebar-footer">
-          <button
-            className="primary-button"
-            onClick={handleRender}
-            disabled={!audioReady || !backgroundUrl || isRendering || canExport === false}
-            title={canExport === false ? "Export requires Chrome or Edge" : !audioReady ? "Load an audio file first" : ""}
-          >
-            {isRendering ? `Rendering ${Math.round(progress)}%` : canExport === false ? "Export (Chrome/Edge only)" : "Export MP4"}
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              className="primary-button"
+              onClick={() => handleRender(false)}
+              disabled={!audioReady || !backgroundUrl || isRendering || canExport === false}
+              title={canExport === false ? "Export requires Chrome or Edge" : !audioReady ? "Load an audio file first" : ""}
+              style={{ flex: 1 }}
+            >
+              {isRendering ? `Rendering ${Math.round(progress)}%` : canExport === false ? "Export (Chrome/Edge only)" : "Export MP4"}
+            </button>
+            <button
+              className="primary-button"
+              onClick={() => handleRender(true)}
+              disabled={!audioReady || !backgroundUrl || isRendering || canExport === false}
+              title="Export first 5 seconds only — great for quickly checking your settings"
+              style={{ flex: "0 0 auto", fontSize: 12, padding: "0 14px", opacity: 0.75 }}
+            >
+              5s Test
+            </button>
+          </div>
         </div>
       </div>
 

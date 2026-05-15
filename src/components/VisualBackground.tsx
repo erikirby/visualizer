@@ -132,15 +132,6 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
         </AbsoluteFill>
       </AbsoluteFill>
 
-      {/* Vignette */}
-      <AbsoluteFill
-        style={{
-          background:
-            "radial-gradient(ellipse at 50% 50%, transparent 52%, rgba(8, 8, 24, 0.70) 100%)",
-          pointerEvents: "none",
-        }}
-      />
-
       {/* Bottom gradient */}
       <AbsoluteFill
         style={{
