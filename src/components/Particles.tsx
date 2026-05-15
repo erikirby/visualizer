@@ -23,9 +23,15 @@ const CANVAS_H = 1080;
 // Changing lifetime per-frame causes all particles to teleport (jitter).
 const LIFETIME = 8.0;
 
-// Deterministic per-particle seeds — golden-angle style, no Math.random()
+// Deterministic per-particle hash — different salts produce uncorrelated outputs.
+// The old linear formula had the same slope for every salt, so x-position and
+// travel-progress were always correlated, producing visible diagonal lines.
 function seed(i: number, salt: number): number {
-  return ((i * 137.508 + salt * 97.3) % 1000) / 1000;
+  let h = (i * 374761393 + salt * 1013904223) >>> 0;
+  h ^= h >>> 13;
+  h = Math.imul(h, 1540483477) >>> 0;
+  h ^= h >>> 15;
+  return h / 4294967296;
 }
 
 // ── Per-direction constants ────────────────────────────────────────────────
