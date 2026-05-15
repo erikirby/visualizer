@@ -518,6 +518,9 @@ export const App = () => {
                    Edit lyrics above and hit Sync again to update
                  </p>
                )}
+               <p style={{color: 'var(--text-secondary)', fontSize: '10px', textAlign: 'center', margin: 0, lineHeight: 1.4, opacity: 0.6}}>
+                 ⚠ Beta — AI sync accuracy varies by song. Results may be imperfect.
+               </p>
              </div>
           )}
 
