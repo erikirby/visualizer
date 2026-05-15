@@ -6,6 +6,7 @@ import { RemotionRoot } from "./Root";
 import { VisualizerMain, VisualizerProps, VisualizerLayout } from "./VisualizerMain";
 import { Main } from "./Main";
 import { forceAlign, AlignWord } from './utils/aligner';
+import { buildVideoFrameCache, clearVideoFrameCache } from './utils/videoFrameCache';
 // @ts-ignore - Vite specific worker import
 import WhisperWorker from './whisper.worker.ts?worker';
 
@@ -211,6 +212,7 @@ export const App = () => {
 
   const [isRendering, setIsRendering] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [renderPhase, setRenderPhase] = useState<"decoding" | "rendering">("rendering");
   const [showHelp, setShowHelp] = useState(false);
   const [canExport, setCanExport] = useState<boolean | null>(null);
   const [audioReady, setAudioReady] = useState(false);
@@ -305,6 +307,7 @@ export const App = () => {
     });
     setIsRendering(true);
     setProgress(0);
+    setRenderPhase("rendering");
     try {
       const { canRender, issues } = await canRenderMediaOnWeb({
         container: "mp4",
@@ -315,6 +318,22 @@ export const App = () => {
         const msg = issues.filter(i => i.severity === "error").map(i => i.message).join("\n");
         alert(`Your browser doesn't support video export.\n\n${msg}\n\nPlease use Chrome or Edge.`);
         return;
+      }
+
+      // Pre-decode video frames for frame-exact export
+      if (bgIsVideo && backgroundUrl && bgVideoDurationInFrames) {
+        setRenderPhase("decoding");
+        setProgress(0);
+        try {
+          const videoDurSec = bgVideoDurationInFrames / 30;
+          await buildVideoFrameCache(backgroundUrl, 30, videoDurSec, (pct) => {
+            setProgress(Math.round(pct * 100));
+          });
+        } catch (e) {
+          console.warn("Video pre-decode failed, falling back to seek method:", e);
+        }
+        setRenderPhase("rendering");
+        setProgress(0);
       }
 
       const result = await renderMediaOnWeb({
@@ -334,6 +353,7 @@ export const App = () => {
         onProgress: ({ progress }) => setProgress(Math.round(progress * 100)),
       });
 
+      if (backgroundUrl) clearVideoFrameCache(backgroundUrl);
       const blob = await result.getBlob();
       track('export_completed', { layout, theme_id: themeId, test_mode: testMode });
       const url = URL.createObjectURL(blob);
@@ -347,10 +367,12 @@ export const App = () => {
       URL.revokeObjectURL(url);
     } catch (err: any) {
       console.error(err);
+      if (backgroundUrl) clearVideoFrameCache(backgroundUrl);
       alert(`Export failed: ${err?.message ?? "Unknown error"}`);
     } finally {
       setIsRendering(false);
       setProgress(0);
+      setRenderPhase("rendering");
     }
   };
 
@@ -647,7 +669,11 @@ export const App = () => {
               disabled={!audioReady || !backgroundUrl || isRendering || canExport === false}
               title={canExport === false ? "Export requires Chrome or Edge" : !audioReady ? "Load an audio file first" : ""}
             >
-              {isRendering ? `Rendering ${Math.round(progress)}%` : canExport === false ? "Export (Chrome/Edge only)" : "Export MP4"}
+              {isRendering
+                ? renderPhase === "decoding"
+                  ? `Preparing video ${Math.round(progress)}%`
+                  : `Rendering ${Math.round(progress)}%`
+                : canExport === false ? "Export (Chrome/Edge only)" : "Export MP4"}
             </button>
             <button
               className="primary-button"

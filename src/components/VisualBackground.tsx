@@ -11,6 +11,7 @@ import {
   delayRender,
   continueRender,
 } from "remotion";
+import { videoFrameCache } from "../utils/videoFrameCache";
 
 interface VisualBackgroundProps {
   bassScale?: number;
@@ -56,11 +57,10 @@ const SeekableVideo: React.FC<{ src: string; frameTime: number }> = ({ src, fram
 };
 
 // Export: draws each video frame onto a <canvas> so Remotion's canvas capture sees it.
-// Key rules:
-//   1. The hidden <video> must be full-size — browsers skip decoding invisible/1px elements.
-//   2. Wait for requestVideoFrameCallback (fires when compositor has the new frame ready),
-//      not just "seeked" (which fires when currentTime updates, before the frame is composited).
+// If a pre-decoded frame cache exists (built before render starts), uses that for
+// frame-exact, instant lookup. Falls back to seek + requestVideoFrameCallback otherwise.
 const CanvasVideoRenderer: React.FC<{ src: string; frameTime: number }> = ({ src, frameTime }) => {
+  const { fps } = useVideoConfig();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const handleRef = useRef<number | null>(null);
@@ -74,10 +74,9 @@ const CanvasVideoRenderer: React.FC<{ src: string; frameTime: number }> = ({ src
   }
 
   useEffect(() => {
-    const video = videoRef.current;
     const canvas = canvasRef.current;
     const handle = handleRef.current;
-    if (!video || !canvas || handle === null) return;
+    if (!canvas || handle === null) return;
 
     let resolved = false;
     const finish = () => {
@@ -85,6 +84,21 @@ const CanvasVideoRenderer: React.FC<{ src: string; frameTime: number }> = ({ src
       resolved = true;
       continueRender(handle);
     };
+
+    // Fast path: pre-decoded cache populated before render started
+    const frameIndex = Math.round(frameTime * fps);
+    const cached = videoFrameCache.get(src)?.get(frameIndex);
+    if (cached) {
+      canvas.width = cached.width;
+      canvas.height = cached.height;
+      canvas.getContext("2d")?.drawImage(cached, 0, 0);
+      finish();
+      return;
+    }
+
+    // Fallback: seek the video element (slower but works without pre-decode)
+    const video = videoRef.current;
+    if (!video) { finish(); return; }
 
     const timeout = setTimeout(finish, 8000);
 
@@ -97,8 +111,6 @@ const CanvasVideoRenderer: React.FC<{ src: string; frameTime: number }> = ({ src
       finish();
     };
 
-    // requestVideoFrameCallback fires when the browser has the decoded frame ready
-    // for display — more reliable than seeked+setTimeout for knowing the frame is composited.
     const waitForFrame = () => {
       if ("requestVideoFrameCallback" in video) {
         (video as any).requestVideoFrameCallback(draw);
@@ -128,11 +140,11 @@ const CanvasVideoRenderer: React.FC<{ src: string; frameTime: number }> = ({ src
       video.removeEventListener("seeked", waitForFrame);
       finish();
     };
-  }, [frameTime, src]);
+  }, [frameTime, src, fps]);
 
   return (
     <>
-      {/* Full-size but invisible — browser will skip decoding a 1px or opacity:0 video */}
+      {/* Hidden video for fallback seek path — kept full-size so browser decodes it */}
       <video
         ref={videoRef}
         src={src}
