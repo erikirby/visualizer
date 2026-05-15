@@ -15,34 +15,6 @@ function track(event: string, params?: Record<string, string | number | boolean>
   try { (window as any).gtag?.('event', event, params); } catch {}
 }
 
-// Pre-crop a blob image URL to exactly targetW×targetH using cover semantics.
-// The internal Remotion canvas renderer ignores CSS objectFit, so we bake it in.
-function cropImageToCover(src: string, targetW: number, targetH: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width  = targetW;
-      canvas.height = targetH;
-      const ctx = canvas.getContext("2d")!;
-      const imgAspect    = img.width / img.height;
-      const targetAspect = targetW / targetH;
-      let dw: number, dh: number, dx: number, dy: number;
-      if (imgAspect > targetAspect) {
-        dh = targetH; dw = targetH * imgAspect;
-        dx = (targetW - dw) / 2; dy = 0;
-      } else {
-        dw = targetW; dh = targetW / imgAspect;
-        dx = 0; dy = (targetH - dh) / 2;
-      }
-      ctx.drawImage(img, dx, dy, dw, dh);
-      resolve(canvas.toDataURL("image/jpeg", 0.95));
-    };
-    img.onerror = () => reject(new Error("Failed to load background image for export"));
-    img.src = src;
-  });
-}
-
 // Helper function to decode audio blob into Float32Array at 16kHz (Whisper format)
 async function decodeAudio(url: string): Promise<Float32Array> {
   const response = await fetch(url);
@@ -348,15 +320,8 @@ export const App = () => {
         return;
       }
 
-      // For image backgrounds: pre-crop to 1920×1080 with cover semantics.
-      // The Remotion internal canvas renderer ignores CSS objectFit, so we bake it in.
-      let exportBackgroundUrl = backgroundUrl;
-      if (!bgIsVideo && backgroundUrl?.startsWith("blob:")) {
-        setRenderStatus("Preparing background...");
-        exportBackgroundUrl = await cropImageToCover(backgroundUrl, 1920, 1080);
-      }
-
       // For video backgrounds: extract frames as JPEGs first, then render internally.
+      const isVideoBg = bgIsVideo && backgroundUrl?.startsWith("blob:");
       if (bgIsVideo && backgroundUrl && bgVideoDurationInFrames) {
         setRenderStatus("Extracting video frames 0%");
         await extractVideoFrames(
@@ -368,7 +333,7 @@ export const App = () => {
         setRenderStatus("Rendering 0%");
       }
 
-      const exportProps = { ...inputProps, backgroundSrc: exportBackgroundUrl || "", isExporting: true };
+      const exportProps = { ...inputProps, isExporting: true };
 
       const result = await renderMediaOnWeb({
         composition: {
@@ -383,10 +348,10 @@ export const App = () => {
         inputProps: exportProps,
         container: "mp4",
         videoBitrate: 25_000_000,
-        // Internal renderer only — no allowHtmlInCanvas.
-        // Image BGs: Remotion's <Img> works natively with blob URLs.
-        // Video BGs: pre-extracted JPEG frames fed via <Img>.
-        // allowHtmlInCanvas:true breaks SVG visualizer capture and is not needed.
+        // Image BGs use allowHtmlInCanvas:true (screen capture) so CSS objectFit:cover applies.
+        // Video BGs use pre-extracted JPEG frames + internal renderer (allowHtmlInCanvas:false)
+        // because screen capture doesn't capture SVG elements correctly.
+        allowHtmlInCanvas: !isVideoBg,
         onProgress: ({ progress }) => setRenderStatus(`Rendering ${Math.round(progress * 100)}%`),
       });
 
