@@ -31,7 +31,7 @@ function seed(i: number, salt: number): number {
   h ^= h >>> 13;
   h = Math.imul(h, 1540483477) >>> 0;
   h ^= h >>> 15;
-  return h / 4294967296;
+  return (h >>> 0) / 4294967296; // >>> 0 forces unsigned — XOR can leave h negative in JS
 }
 
 // ── Per-direction constants ────────────────────────────────────────────────
