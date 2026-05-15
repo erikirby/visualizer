@@ -4,6 +4,8 @@ import { useAudioData, visualizeAudio } from "@remotion/media-utils";
 import { getMusicViz, getBassEnergy } from "../utils/audioColor";
 import { lerpColor } from "../utils/themes";
 
+interface DNAHelixProps {
+  audioSrc: string;
   colorA?: string;
   colorB?: string;
   spectrumType?: "bass" | "wide";
