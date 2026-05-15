@@ -208,7 +208,7 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
         <ArtistBug artistName={artistName} trackName={trackName} size="full" reverseTitles={reverseTitles} fontFamily={fontFamily} colorA={colorA} colorB={colorB} />
       )}
 
-      {beatFlash > 0.05 && (
+      {screenPulse && beatFlash > 0.05 && (
         <AbsoluteFill
           style={{
             background: `${flashColor}${Math.round(beatFlash * 0.22 * 255).toString(16).padStart(2, "0")}`,
