@@ -599,14 +599,17 @@ export const App = () => {
         </div>
 
         <div className="sidebar-footer">
-          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", lineHeight: 1.6, marginBottom: 10, padding: "10px 12px", background: "rgba(255,255,255,0.04)", borderRadius: 10 }}>
-            💡 <strong style={{ color: "rgba(255,255,255,0.7)" }}>Get sharper video quality:</strong> In Chrome, go to{" "}
-            <span
-              style={{ fontFamily: "monospace", background: "rgba(255,255,255,0.08)", padding: "1px 5px", borderRadius: 4, userSelect: "all", cursor: "text", color: "rgba(255,255,255,0.65)" }}
-            >
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", lineHeight: 1.7, marginBottom: 10, padding: "10px 12px", background: "rgba(255,180,0,0.06)", border: "1px solid rgba(255,180,0,0.15)", borderRadius: 10 }}>
+            ⚠ <strong style={{ color: "rgba(255,200,80,0.9)" }}>One-time setup required for best exports.</strong><br />
+            In Chrome, paste this in your address bar:{" "}
+            <span style={{ fontFamily: "monospace", background: "rgba(255,255,255,0.08)", padding: "1px 5px", borderRadius: 4, userSelect: "all", cursor: "text", color: "rgba(255,255,255,0.75)" }}>
               chrome://flags/#canvas-draw-element
             </span>
-            {" "}→ set to <strong style={{ color: "rgba(255,255,255,0.7)" }}>Enabled</strong> → relaunch Chrome.
+            <br />
+            Set <strong style={{ color: "rgba(255,200,80,0.9)" }}>HTML-in-Canvas</strong> to <strong style={{ color: "rgba(255,200,80,0.9)" }}>Enabled</strong> → relaunch Chrome. Edge users: same steps, use{" "}
+            <span style={{ fontFamily: "monospace", background: "rgba(255,255,255,0.08)", padding: "1px 5px", borderRadius: 4, userSelect: "all", cursor: "text", color: "rgba(255,255,255,0.75)" }}>
+              edge://flags/#canvas-draw-element
+            </span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <button
@@ -642,8 +645,11 @@ export const App = () => {
             <button onClick={() => setShowHelp(false)} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", color: "var(--text-secondary)", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
             <h2 style={{ fontFamily: "Syne, sans-serif", fontSize: 22, fontWeight: 700, background: "linear-gradient(90deg, #FF2D9B, #00B4FF)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", marginBottom: 8 }}>Kirbai Vision</h2>
             <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 12 }}>Create a music visualizer in 4 steps.</p>
-            <p style={{ fontSize: 12, background: "rgba(255,180,0,0.08)", border: "1px solid rgba(255,180,0,0.2)", borderRadius: 8, padding: "8px 12px", color: "rgba(255,200,80,0.9)", marginBottom: 20, lineHeight: 1.5 }}>
+            <p style={{ fontSize: 12, background: "rgba(255,180,0,0.08)", border: "1px solid rgba(255,180,0,0.2)", borderRadius: 8, padding: "8px 12px", color: "rgba(255,200,80,0.9)", marginBottom: 10, lineHeight: 1.5 }}>
               ⚠ <strong>Export requires Chrome or Edge.</strong> Safari and Firefox do not support MP4 export — you'll get an error. Preview works in any browser.
+            </p>
+            <p style={{ fontSize: 12, background: "rgba(255,180,0,0.08)", border: "1px solid rgba(255,180,0,0.2)", borderRadius: 8, padding: "8px 12px", color: "rgba(255,200,80,0.9)", marginBottom: 20, lineHeight: 1.6 }}>
+              ⚠ <strong>One-time setup for best export quality.</strong> In Chrome, paste <span style={{ fontFamily: "monospace", background: "rgba(0,0,0,0.2)", padding: "0 4px", borderRadius: 3 }}>chrome://flags/#canvas-draw-element</span> into your address bar → set <strong>HTML-in-Canvas</strong> to <strong>Enabled</strong> → relaunch Chrome. Edge users use <span style={{ fontFamily: "monospace", background: "rgba(0,0,0,0.2)", padding: "0 4px", borderRadius: 3 }}>edge://flags/#canvas-draw-element</span> instead. Only needs to be done once.
             </p>
             {[
               { n: "1", title: "Upload your audio", body: "MP3 or WAV, up to 200MB. The preview activates once both audio and a background are loaded." },
