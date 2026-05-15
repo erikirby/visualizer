@@ -149,8 +149,8 @@ export const Particles: React.FC<ParticlesProps> = ({
       // Break up predictable patterns with per-particle distance offsets
       const spread1 = seed(i, 2);
       const spread2 = seed(i, 3);
-      const distOffset = seed(i, 4) * 200; // Scatter them along the travel axis
-      const drift   = Math.sin(t * 0.5 + i * 1.6) * 30 * spread2;
+      const distOffset = (seed(i, 4) - 0.5) * 200; // Scatter them along the travel axis (symmetric ±100)
+      const drift   = Math.sin(t * 0.5 + i * 1.6) * 50 * spread2;
 
       const isVertical = direction === "up" || direction === "down";
       const travel     = isVertical ? TRAVEL_V : TRAVEL_H;
@@ -177,10 +177,10 @@ export const Particles: React.FC<ParticlesProps> = ({
           break;
       }
 
-      const baseSize = 1.0 + seed(i, 0) * 2.0;
-      size           = (baseSize + energy * 2.0) * Math.max(0.3, 1 - travelProgress * 0.35);
+      const baseSize = 2.5 + seed(i, 0) * 3.5;
+      size           = (baseSize + energy * 3.0) * Math.max(0.3, 1 - travelProgress * 0.35);
 
-      opacity = fadeIn * fadeOut * Math.min(1, 0.28 + energy * 3.2);
+      opacity = fadeIn * fadeOut * Math.min(1, 0.35 + energy * 3.5);
     }
 
     if (opacity < 0.02) continue;
@@ -209,7 +209,7 @@ export const Particles: React.FC<ParticlesProps> = ({
     >
       <defs>
         <filter id="ptcl-glow" x="-150%" y="-150%" width="400%" height="400%">
-          <feGaussianBlur stdDeviation="3.5" result="blur" />
+          <feGaussianBlur stdDeviation="5" result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
             <feMergeNode in="SourceGraphic" />
