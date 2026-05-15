@@ -3,6 +3,7 @@ import {
   AbsoluteFill,
   Img,
   OffthreadVideo,
+  Video,
   Sequence,
   Loop,
   staticFile,
@@ -46,6 +47,9 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
 
   const src     = backgroundSrc ?? staticFile("background.png");
   const isVideo = bgIsVideo === true || bgLoopType !== undefined || VIDEO_EXT_RE.test(src);
+  // blob: URLs (user uploads) must use <Video> — OffthreadVideo fetches via HTTP
+  // and hangs indefinitely on blob: scheme URLs in the browser player.
+  const isBlob  = src.startsWith("blob:");
 
   const t = frame / fps;
 
@@ -97,13 +101,17 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
     if (bgVideoDurationInFrames) {
       return (
         <Loop durationInFrames={bgVideoDurationInFrames}>
-          <OffthreadVideo src={src} muted style={VIDEO_FILL_STYLE} />
+          {isBlob
+            ? <Video src={src} muted style={VIDEO_FILL_STYLE} />
+            : <OffthreadVideo src={src} muted style={VIDEO_FILL_STYLE} />}
         </Loop>
       );
     }
 
     // Fallback: no duration metadata (should not happen in normal usage).
-    return <OffthreadVideo src={src} muted style={VIDEO_FILL_STYLE} />;
+    return isBlob
+      ? <Video src={src} muted style={VIDEO_FILL_STYLE} />
+      : <OffthreadVideo src={src} muted style={VIDEO_FILL_STYLE} />;
   };
 
   return (
