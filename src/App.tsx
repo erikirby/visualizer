@@ -231,24 +231,30 @@ export const App = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 500 * 1024 * 1024) { alert("Background file must be under 500MB."); return; }
-    const url = URL.createObjectURL(file);
-    setBackgroundUrl(url);
     setBackgroundName(file.name);
     const isVid = file.type.startsWith("video/");
     setBgIsVideo(isVid);
     if (isVid) {
+      // Probe duration with a temporary blob URL (revoked immediately after).
+      const metaUrl = URL.createObjectURL(file);
       const vid = document.createElement("video");
       vid.preload = "metadata";
-      // Use a separate blob URL for metadata probing so we can safely revoke it
-      // without affecting the backgroundUrl the player is actively using.
-      const metaUrl = URL.createObjectURL(file);
       vid.onloadedmetadata = () => {
         setBgVideoDurationInFrames(Math.round(vid.duration * 30));
         URL.revokeObjectURL(metaUrl);
       };
       vid.src = metaUrl;
+      // Convert to data URL so Remotion's Video component can fetch it during
+      // both preview and renderMediaOnWeb export — blob: URLs fail in export.
+      const reader = new FileReader();
+      reader.onload = () => {
+        setBackgroundUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     } else {
       setBgVideoDurationInFrames(undefined);
+      // Images: blob URL is fine — Remotion's Img component handles it correctly.
+      setBackgroundUrl(URL.createObjectURL(file));
     }
   };
 
@@ -478,7 +484,7 @@ export const App = () => {
               </div>
               <div className="control-group">
                 <label>Speed — {parseFloat((particleSpeed / 0.3).toFixed(1))}x</label>
-                <input type="range" min="0.05" max="3" step="0.05" value={particleSpeed} onChange={e => setParticleSpeed(Number(e.target.value))}
+                <input type="range" min="0.05" max="0.55" step="0.025" value={particleSpeed} onChange={e => setParticleSpeed(Number(e.target.value))}
                   style={{ width: '100%', accentColor: 'var(--accent-pink)', cursor: 'pointer' }} />
               </div>
               <div className="control-group">

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React from "react";
 import {
   AbsoluteFill,
   Img,
@@ -9,7 +9,6 @@ import {
   staticFile,
   useCurrentFrame,
   useVideoConfig,
-  getRemotionEnvironment,
 } from "remotion";
 
 interface VisualBackgroundProps {
@@ -32,48 +31,6 @@ const VIDEO_FILL_STYLE: React.CSSProperties = {
   objectPosition: "center center",
 };
 
-// Frame-synced video for blob: URLs in the Player.
-// Bypasses Remotion's buffering detector (which hangs on blob: scheme) by using
-// a plain <video> ref and manually seeking to the correct time each frame.
-// Consecutive frame → play(); same/jumped frame → pause + seek (scrubbing/paused).
-const BlobVideo: React.FC<{ src: string; durationInFrames?: number }> = ({ src, durationInFrames }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const ref = useRef<HTMLVideoElement>(null);
-  const prevFrameRef = useRef<number>(-1);
-
-  useEffect(() => {
-    const video = ref.current;
-    if (!video) return;
-    const loopFrames = durationInFrames ?? Infinity;
-    const loopedFrame = isFinite(loopFrames) ? frame % loopFrames : frame;
-    const targetTime = loopedFrame / fps;
-    const prevFrame = prevFrameRef.current;
-    prevFrameRef.current = frame;
-
-    if (frame === prevFrame + 1) {
-      // Player is advancing frame by frame — play normally
-      if (video.paused) video.play().catch(() => {});
-    } else {
-      // Paused or scrubbing — seek to exact frame
-      if (!video.paused) video.pause();
-      if (Math.abs(video.currentTime - targetTime) > 1 / fps) {
-        video.currentTime = targetTime;
-      }
-    }
-  });
-
-  return (
-    <video
-      ref={ref}
-      src={src}
-      muted
-      playsInline
-      preload="auto"
-      style={VIDEO_FILL_STYLE}
-    />
-  );
-};
 
 export const VisualBackground: React.FC<VisualBackgroundProps> = ({
   bassScale = 1,
@@ -88,13 +45,10 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
 
   const src     = backgroundSrc ?? staticFile("background.png");
   const isVideo = bgIsVideo === true || bgLoopType !== undefined || VIDEO_EXT_RE.test(src);
-  const isBlob  = src.startsWith("blob:");
-
-  // For blob: URLs, Remotion's buffering detector hangs in the Player and
-  // OffthreadVideo fails silently during renderMediaOnWeb.
-  // Player preview → frame-synced plain <video> (BlobVideo).
-  // Export → Remotion <Video> component which handles blob: fine in WebCodecs.
-  const { isRendering } = getRemotionEnvironment();
+  // User-uploaded videos arrive as data: URLs (FileReader.readAsDataURL).
+  // Data URLs are self-contained — no network fetch, no buffering-detector issue,
+  // works identically in the Player preview and renderMediaOnWeb export.
+  const isDataUrl = src.startsWith("data:");
 
   const t = frame / fps;
 
@@ -108,12 +62,10 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
   const buildVideoNode = (): React.ReactNode => {
     if (!isVideo) return null;
 
-    if (isBlob) {
-      // Player: frame-synced native video (bypasses Remotion buffering check)
-      if (!isRendering) {
-        return <BlobVideo src={src} durationInFrames={bgVideoDurationInFrames} />;
-      }
-      // Export: Remotion <Video> works with blob: in WebCodecs; OffthreadVideo does not
+    if (isDataUrl) {
+      // Data URL: self-contained, works in both Player preview and renderMediaOnWeb export.
+      // Use Remotion <Video> (not OffthreadVideo — OffthreadVideo fetches the src which
+      // is slow/broken for large data URLs).
       if (bgVideoDurationInFrames) {
         return (
           <Loop durationInFrames={bgVideoDurationInFrames}>

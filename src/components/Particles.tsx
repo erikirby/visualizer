@@ -121,7 +121,7 @@ export const Particles: React.FC<ParticlesProps> = ({
       x = CX + Math.cos(angle) * r;
       y = CY + Math.sin(angle) * r;
 
-      const baseSize = 1.8 + seed(i, 0) * 2.5;
+      const baseSize = 2.5 + seed(i, 0) * 3.5;
       size           = (baseSize + energy * 3.0) * Math.max(0.3, 1 - travelProgress * 0.45);
 
       opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.3 + energy * 2.5);
@@ -146,8 +146,8 @@ export const Particles: React.FC<ParticlesProps> = ({
       x = CX + cosA * r;
       y = CY + sinA * r;
 
-      const baseSize = 1.8 + seed(i, 0) * 2.5;
-      size           = (baseSize + energy * 2.5) * (1.0 - inwardProg * 0.4);
+      const baseSize = 2.5 + seed(i, 0) * 3.5;
+      size           = (baseSize + energy * 3.0) * (1.0 - inwardProg * 0.4);
 
       // Fade in at edge; fade out uses same randomized fadeStart as other modes
       opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.3 + energy * 2.5);
