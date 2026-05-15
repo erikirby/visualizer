@@ -6,7 +6,7 @@ env.allowLocalModels = false;
 // We will use a singleton pattern for the pipeline
 class PipelineSingleton {
   static task = 'automatic-speech-recognition';
-  static model = 'Xenova/whisper-tiny.en';
+  static model = 'Xenova/whisper-base.en';
   static instance: any = null;
 
   static async getInstance(progress_callback: Function) {

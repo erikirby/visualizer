@@ -100,10 +100,15 @@ export const App = () => {
                .filter(w => w.text.length > 0);
              const aligned = forceAlign(userWords, whisperWords);
              // Group back into LrcLine objects — one per original lyric line
+             const totalLines = lyricLines.length;
+             const dur = audioDuration;
              const lrcLines = lyricLines.map((lineText, lineIdx) => {
                const words = aligned.filter(w => w.lineIdx === lineIdx);
                const firstTimed = words.find(w => w.time !== undefined);
-               const time = firstTimed?.time ?? 0;
+               // Fallback: place at proportional position in the song so missed
+               // sections (e.g. first chorus) land near the right part of the audio
+               // rather than piling up at time=0.
+               const time = firstTimed?.time ?? (dur * (lineIdx / totalLines));
                return { time, text: lineText, words: words.map(w => w.text) };
              });
              // Spread any groups of lines that share the same timestamp.
