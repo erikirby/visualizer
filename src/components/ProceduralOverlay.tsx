@@ -50,61 +50,54 @@ export const ProceduralOverlay: React.FC<ProceduralOverlayProps> = ({
   }
 
   // ── Light Leak ──────────────────────────────────────────────────────────────
-  // Uses SVG radial gradients (Remotion's canvas renderer captures SVG but not
-  // CSS background-image on divs).  The viewBox is padded 50 % beyond each edge
-  // so gradients have room to fade to transparent before hitting the viewport
-  // boundary — eliminating the hard-clip bars that appear with a tight viewBox.
+  // Remotion's canvas renderer rasterizes SVGs at their element dimensions and
+  // clips at the SVG boundary. In the browser preview it looks fine, but on
+  // export the gradient gets hard-clipped wherever it's still visible at the
+  // SVG edge. Fix: make the SVG physically larger than the frame (by PAD px on
+  // each side) and position it with negative offsets. The composition boundary
+  // clips the overflow — but at the frame edge the gradient is smooth because
+  // the hard SVG clip happens well outside the visible area.
   if (type === "light-leak") {
     const t = frame / 30;
 
-    // Blob centres oscillate across 20–80 % of the *visible* frame …
-    const cx  = 50 + 30 * Math.sin(t * 0.17);          // % of W
-    const cy  = 42 + 26 * Math.cos(t * 0.11 + 1.2);    // % of H
-    const r   = 85 + 12 * Math.sin(t * 0.14);           // % radius
+    const cxPct = 50 + 30 * Math.sin(t * 0.17);
+    const cyPct = 42 + 26 * Math.cos(t * 0.11 + 1.2);
+    const rPct  = 85 + 12 * Math.sin(t * 0.14);
 
-    const cx2 = 50 + 34 * Math.sin(t * 0.13 + Math.PI);
-    const cy2 = 56 + 28 * Math.cos(t * 0.09 + Math.PI + 0.8);
-    const r2  = 78 + 12 * Math.cos(t * 0.16 + 0.5);
+    const cx2Pct = 50 + 34 * Math.sin(t * 0.13 + Math.PI);
+    const cy2Pct = 56 + 28 * Math.cos(t * 0.09 + Math.PI + 0.8);
+    const r2Pct  = 78 + 12 * Math.cos(t * 0.16 + 0.5);
 
     const op = opacity ?? 0.48;
 
-    // ── Padded viewBox geometry ────────────────────────────────────────────
-    // PAD = fraction of each dimension added on every side.
-    // A gradient blob with r ≈ 97 % and cx near 16 % needs ~81 % extra room
-    // on the left edge.  50 % padding gives ~960 px of fade-out space on each
-    // side — more than enough for the biggest blobs to reach zero opacity.
-    const PAD = 0.5;
-    const vbX = -W * PAD;                   // e.g. -960
-    const vbY = -H * PAD;                   // e.g. -540
-    const vbW = W * (1 + 2 * PAD);          // e.g. 3840
-    const vbH = H * (1 + 2 * PAD);          // e.g. 2160
+    // Extra pixels on every side — pushes the SVG boundary far outside the
+    // visible frame so the gradient's hard clip is never seen.
+    const PAD = 600;
+    const totalW = W + 2 * PAD;   // 3120
+    const totalH = H + 2 * PAD;   // 2280
 
-    // Convert visible-frame-percentage positions into padded-viewBox coords:
-    const toVBx = (pct: number) => (pct / 100) * W;   // stays in W coords
-    const toVBy = (pct: number) => (pct / 100) * H;   // stays in H coords
+    // Gradient positions: offset by PAD so (0%,0%) of the frame = (PAD,PAD)
+    const b1cx = PAD + (cxPct / 100) * W;
+    const b1cy = PAD + (cyPct / 100) * H;
+    const b1r  = (rPct / 100) * W;
 
-    // Radii in viewBox units — % of W is a reasonable base.
-    const toR = (pct: number) => (pct / 100) * W;
-
-    const b1cx = toVBx(cx);
-    const b1cy = toVBy(cy);
-    const b1r  = toR(r);
-
-    const b2cx = toVBx(cx2);
-    const b2cy = toVBy(cy2);
-    const b2r  = toR(r2);
+    const b2cx = PAD + (cx2Pct / 100) * W;
+    const b2cy = PAD + (cy2Pct / 100) * H;
+    const b2r  = (r2Pct / 100) * W;
 
     return (
       <AbsoluteFill style={{ pointerEvents: "none", opacity: op }}>
         <svg
-          width="100%"
-          height="100%"
-          viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`}
-          preserveAspectRatio="none"
-          style={{ position: "absolute", inset: 0 }}
+          width={totalW}
+          height={totalH}
+          viewBox={`0 0 ${totalW} ${totalH}`}
+          style={{
+            position: "absolute",
+            left: -PAD,
+            top: -PAD,
+          }}
         >
           <defs>
-            {/* Blob A — colorA */}
             <radialGradient id="ll-blob-a" cx={b1cx} cy={b1cy} r={b1r}
               gradientUnits="userSpaceOnUse">
               <stop offset="0%"   stopColor={colorA} stopOpacity={0.90} />
@@ -112,7 +105,6 @@ export const ProceduralOverlay: React.FC<ProceduralOverlayProps> = ({
               <stop offset="100%" stopColor={colorA} stopOpacity={0} />
             </radialGradient>
 
-            {/* Blob B — colorB */}
             <radialGradient id="ll-blob-b" cx={b2cx} cy={b2cy} r={b2r}
               gradientUnits="userSpaceOnUse">
               <stop offset="0%"   stopColor={colorB} stopOpacity={0.75} />
@@ -121,10 +113,8 @@ export const ProceduralOverlay: React.FC<ProceduralOverlayProps> = ({
             </radialGradient>
           </defs>
 
-          {/* Fill rects span the entire padded viewBox so the gradient is
-              never cut short by the rect boundary either. */}
-          <rect x={vbX} y={vbY} width={vbW} height={vbH} fill="url(#ll-blob-a)" />
-          <rect x={vbX} y={vbY} width={vbW} height={vbH} fill="url(#ll-blob-b)" />
+          <rect width={totalW} height={totalH} fill="url(#ll-blob-a)" />
+          <rect width={totalW} height={totalH} fill="url(#ll-blob-b)" />
         </svg>
       </AbsoluteFill>
     );
