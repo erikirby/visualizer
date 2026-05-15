@@ -352,6 +352,9 @@ export const App = () => {
             >?</button>
           </div>
           <p>Visualizer & Lyric Video Creator</p>
+          <p style={{ fontSize: 11, color: "var(--text-secondary)", opacity: 0.7, marginTop: 4 }}>
+            ⚠ Export requires <strong>Chrome or Edge</strong> — Safari & Firefox not supported
+          </p>
         </div>
 
         <div className="sidebar-content">
@@ -574,7 +577,10 @@ export const App = () => {
           >
             <button onClick={() => setShowHelp(false)} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", color: "var(--text-secondary)", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
             <h2 style={{ fontFamily: "Syne, sans-serif", fontSize: 22, fontWeight: 700, background: "linear-gradient(90deg, #FF2D9B, #00B4FF)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", marginBottom: 8 }}>Kirbai Vision</h2>
-            <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 28 }}>Create a music visualizer in 4 steps.</p>
+            <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 12 }}>Create a music visualizer in 4 steps.</p>
+            <p style={{ fontSize: 12, background: "rgba(255,180,0,0.08)", border: "1px solid rgba(255,180,0,0.2)", borderRadius: 8, padding: "8px 12px", color: "rgba(255,200,80,0.9)", marginBottom: 20, lineHeight: 1.5 }}>
+              ⚠ <strong>Export requires Chrome or Edge.</strong> Safari and Firefox do not support MP4 export — you'll get an error. Preview works in any browser.
+            </p>
             {[
               { n: "1", title: "Upload your audio", body: "MP3 or WAV, up to 200MB. The preview activates once both audio and a background are loaded." },
               { n: "2", title: "Upload a background", body: "Any image or video. If your video is shorter than the audio, it will loop continuously to fill the full length." },
