@@ -333,7 +333,7 @@ export const App = () => {
         },
         inputProps,
         container: "mp4",
-        videoBitrate: 12_000_000,
+        videoBitrate: 25_000_000,
         allowHtmlInCanvas: true,
         onProgress: ({ progress }) => setProgress(Math.round(progress * 100)),
       });
