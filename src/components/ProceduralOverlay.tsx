@@ -58,10 +58,10 @@ export const ProceduralOverlay: React.FC<ProceduralOverlayProps> = ({
     const cx2 = 80 + 15 * Math.cos(t * 0.09 + 2.5);
     const cy2 = 65 + 18 * Math.sin(t * 0.13);
 
-    const op = opacity ?? 0.38;
+    const op = opacity ?? 0.48;
 
     return (
-      <AbsoluteFill style={{ pointerEvents: "none", mixBlendMode: "screen", opacity: op }}>
+      <AbsoluteFill style={{ pointerEvents: "none", opacity: op }}>
         <svg
           width="100%" height="100%"
           viewBox={`0 0 100 100`}
