@@ -20,7 +20,9 @@ async function decodeAudio(url: string): Promise<Float32Array> {
   const arrayBuffer = await response.arrayBuffer();
   const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
   const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-  return audioBuffer.getChannelData(0);
+  const data = audioBuffer.getChannelData(0);
+  audioContext.close();
+  return data;
 }
 
 // Pre-defined options
@@ -108,7 +110,7 @@ export const App = () => {
              const aligned = forceAlign(userWords, whisperWords);
              // Group back into LrcLine objects — one per original lyric line
              const totalLines = lyricLines.length;
-             const dur = audioDuration;
+             const dur = audioDurationRef.current;
              const lrcLines = lyricLines.map((lineText, lineIdx) => {
                const words = aligned.filter(w => w.lineIdx === lineIdx);
                const firstTimed = words.find(w => w.time !== undefined);
@@ -169,6 +171,8 @@ export const App = () => {
   
   const [showAdvancedVisualizer, setShowAdvancedVisualizer] = useState<boolean>(false);
   const [audioDuration, setAudioDuration] = useState<number>(30);
+  const audioDurationRef = useRef<number>(30);
+  useEffect(() => { audioDurationRef.current = audioDuration; }, [audioDuration]);
 
   const presets = [
     { id: "midnight", name: "Neon Constellation", config: { themeId: 1, layout: "constellation", showParticles: true, particleDirection: "in", overlayType: "light-leak", overlayOpacity: 0.4 } },
@@ -222,11 +226,14 @@ export const App = () => {
     if (isVid) {
       const vid = document.createElement("video");
       vid.preload = "metadata";
+      // Use a separate blob URL for metadata probing so we can safely revoke it
+      // without affecting the backgroundUrl the player is actively using.
+      const metaUrl = URL.createObjectURL(file);
       vid.onloadedmetadata = () => {
         setBgVideoDurationInFrames(Math.round(vid.duration * 30));
-        URL.revokeObjectURL(vid.src);
+        URL.revokeObjectURL(metaUrl);
       };
-      vid.src = url;
+      vid.src = metaUrl;
     } else {
       setBgVideoDurationInFrames(undefined);
     }
@@ -331,6 +338,7 @@ export const App = () => {
     backgroundSrc: backgroundUrl || "",
     bgIsVideo,
     bgVideoDurationInFrames,
+    reflection,
     showParticles,
     particleDirection,
     particleSpeed,
@@ -530,15 +538,18 @@ export const App = () => {
 
           {showLyrics && (
              <div className="advanced-panel" style={{ padding: '12px', background: 'rgba(0,0,0,0.15)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-               <textarea className="text-input" rows={3} placeholder="Paste lyrics here (one line per lyric)..." value={rawLyrics} onChange={e => {
-                 const cleaned = e.target.value
-                   .replace(/\[.*?\]/g, "")
-                   .split('\n')
-                   .map(l => l.replace(/\s+/g, ' ').trim())
-                   .filter(l => l.length > 0)
-                   .join('\n');
-                 setRawLyrics(cleaned);
-               }} style={{fontSize: '12px'}} />
+               <textarea className="text-input" rows={3} placeholder="Paste lyrics here (one line per lyric)..." value={rawLyrics}
+                 onChange={e => setRawLyrics(e.target.value)}
+                 onBlur={e => {
+                   const cleaned = e.target.value
+                     .replace(/\[.*?\]/g, "")
+                     .split('\n')
+                     .map(l => l.replace(/\s+/g, ' ').trim())
+                     .filter(l => l.length > 0)
+                     .join('\n');
+                   setRawLyrics(cleaned);
+                 }}
+                 style={{fontSize: '12px'}} />
                <button className="primary-button" onClick={handleSync} disabled={isSyncing || !rawLyrics}
                  style={{padding: '8px', fontSize: '12px', background: 'var(--accent-blue)', lineHeight: 1.4}}>
                  {isSyncing ? (
