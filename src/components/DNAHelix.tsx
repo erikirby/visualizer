@@ -33,6 +33,7 @@ function h(a: number, b: number): number {
 }
 
 export const DNAHelix: React.FC<DNAHelixProps> = ({
+  audioSrc,
   colorA = "#FF2D9B",
   colorB = "#00B4FF",
   spectrumType = "wide",
