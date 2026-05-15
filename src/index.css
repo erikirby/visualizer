@@ -369,3 +369,74 @@ input:checked + .slider:before {
 .preset-button:active {
   transform: scale(0.96);
 }
+
+/* ── Tooltips ─────────────────────────────────────────────────────────── */
+.tooltip-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tooltip-icon {
+  width: 15px;
+  height: 15px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+  transition: all 0.2s ease;
+}
+
+.tooltip-container:hover .tooltip-icon {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  background: rgba(0, 180, 255, 0.1);
+}
+
+.tooltip-content {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  width: 220px;
+  padding: 12px;
+  background: #1a1a3a;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.4;
+  text-transform: none;
+  letter-spacing: normal;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+}
+
+.tooltip-content strong {
+  color: var(--accent-blue);
+}
+
+.tooltip-container:hover .tooltip-content {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Arrow for the tooltip */
+.tooltip-content::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 10px;
+  border-width: 6px;
+  border-style: solid;
+  border-color: #1a1a3a transparent transparent transparent;
+}

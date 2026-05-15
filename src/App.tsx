@@ -446,9 +446,16 @@ export const App = () => {
           </div>
 
           <div className="control-group">
-            <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               Spectrum
-              <span style={{ fontSize: '12px', opacity: 0.5, fontWeight: 'normal', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid currentColor', borderRadius: '50%', width: '14px', height: '14px', cursor: 'help' }} title="BASS: Visualize low frequencies.&#10;WIDE: Visualize a wide range of frequencies.">?</span>
+              <div className="tooltip-container">
+                <span className="tooltip-icon">?</span>
+                <div className="tooltip-content">
+                  <strong>BASS:</strong> Focuses on low-end energy (0–3kHz). Ideal for kick-heavy tracks.
+                  <br/><br/>
+                  <strong>WIDE:</strong> Maps the full frequency range (0–9kHz) for a more detailed, active look.
+                </div>
+              </div>
             </label>
             <div className="segmented-control">
               <button 
