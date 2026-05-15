@@ -19,29 +19,22 @@ interface ParticlesProps {
 const CANVAS_W = 1920;
 const CANVAS_H = 1080;
 
-// Fixed lifetime — NEVER changes frame-to-frame. This is critical.
-// Changing lifetime per-frame causes all particles to teleport (jitter).
+// Fixed lifetime — NEVER changes frame-to-frame.
 const LIFETIME = 8.0;
 
-// Deterministic per-particle hash — different salts produce uncorrelated outputs.
-// The old linear formula had the same slope for every salt, so x-position and
-// travel-progress were always correlated, producing visible diagonal lines.
 function seed(i: number, salt: number): number {
   let h = (i * 374761393 + salt * 1013904223) >>> 0;
   h ^= h >>> 13;
   h = Math.imul(h, 1540483477) >>> 0;
   h ^= h >>> 15;
-  return (h >>> 0) / 4294967296; // >>> 0 forces unsigned — XOR can leave h negative in JS
+  return (h >>> 0) / 4294967296;
 }
 
-// ── Per-direction constants ────────────────────────────────────────────────
 const MIST_COUNT  = 60;
 const BURST_COUNT = 48;
-
-// Travel distances — full screen so particles exit off the far edge
-const TRAVEL_V    = CANVAS_H + 120;   // vertical (up/down)
-const TRAVEL_H    = CANVAS_W + 120;   // horizontal (left/right)
-const BURST_MAX_R = 1200;             // radial — reaches past screen corners
+const TRAVEL_V    = CANVAS_H + 120;
+const TRAVEL_H    = CANVAS_W + 120;
+const BURST_MAX_R = 1200;
 
 const HALF_W = CANVAS_W / 2;
 const HALF_H = CANVAS_H / 2;
@@ -74,57 +67,100 @@ export const Particles: React.FC<ParticlesProps> = ({
   const isInward  = direction === "in";
   const COUNT     = Math.round(((isBurst || isInward) ? BURST_COUNT : MIST_COUNT) * countMultiplier);
 
-  // Lifetime scales inversely with speed so particles ALWAYS cross the full screen.
-  // Slow speed = long life = same distance, slower velocity.
-  // Energy adds a gentle nudge without affecting lifetime.
   const lifetimeSecs  = LIFETIME / speedMultiplier;
-  const energyBoost   = reactiveSpeed ? 1 + energy * 0.15 : 1; // halved boost (was 0.3)
+  // SOFTENED: reactiveSpeed boost reduced to 0.15 (was 0.3)
+  const energyBoost   = reactiveSpeed ? 1 + energy * 0.15 : 1;
 
   const elements: React.ReactNode[] = [];
 
   for (let i = 0; i < COUNT; i++) {
-    // ... rest of the loop logic remains the same ...
-    // travelProgress: at progress=1.0, particle has crossed the full screen.
+    const phaseOffset    = (i / COUNT) * lifetimeSecs;
+    const timeSinceSpawn = ((t + phaseOffset) % lifetimeSecs);
+    const progress       = timeSinceSpawn / lifetimeSecs;
     const travelProgress = progress * energyBoost;
 
-    // ...
+    const particleBrightness = Math.pow(seed(i, 6), 1.6) * 0.78 + 0.12;
+    const fadeIn       = Math.min(1, progress * 10);
+    const fadeStart    = 0.60 + seed(i, 7) * 0.30;
+    const fadeOut      = 1 - Math.pow(Math.max(0, (progress - fadeStart) / (1 - fadeStart)), 2.0);
+
     let opacity: number;
     let x: number;
     let y: number;
     let size: number;
 
     if (isBurst) {
-      // ── Burst / out ───────────────────────────────────────────────────────
-      // ...
+      const goldenAngle  = i * 2.39996;
+      const angleWobble  = Math.sin(t * 0.4 + i * 2.1) * 0.18;
+      const angle        = goldenAngle + angleWobble;
+      const speedVar     = 0.65 + seed(i, 5) * 0.70;
       const r            = travelProgress * BURST_MAX_R * speedVar;
 
       x = CX + Math.cos(angle) * r;
       y = CY + Math.sin(angle) * r;
 
       const baseSize = 2.5 + seed(i, 0) * 3.5;
-      size           = (baseSize + energy * 1.5) * Math.max(0.3, 1 - travelProgress * 0.45); // halved (was 3.0)
-
-      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.4 + energy * 1.0); // dampened (was 0.3 + 2.5)
+      // SOFTENED: energy size boost reduced to 1.5 (was 3.0)
+      size           = (baseSize + energy * 1.5) * Math.max(0.3, 1 - travelProgress * 0.45);
+      // SOFTENED: energy opacity boost reduced to 1.0 (was 2.5)
+      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.4 + energy * 1.0);
 
     } else if (isInward) {
-      // ── Inward — edges toward center ────────────────────────────────────
-      // ...
+      const goldenAngle = i * 2.39996;
+      const angleWobble = Math.sin(t * 0.4 + i * 2.1) * 0.18;
+      const angle       = goldenAngle + angleWobble;
+      const cosA = Math.cos(angle);
+      const sinA = Math.sin(angle);
+
+      const edgeR  = 1 / Math.max(Math.abs(cosA) / HALF_W, Math.abs(sinA) / HALF_H);
+      const startR = edgeR * (1.05 + seed(i, 5) * 0.30);
+      const inwardProg = Math.min(1, travelProgress);
+      const r = (1 - inwardProg) * startR;
+
       x = CX + cosA * r;
       y = CY + sinA * r;
 
       const baseSize = 2.5 + seed(i, 0) * 3.5;
-      size           = (baseSize + energy * 1.5) * (1.0 - inwardProg * 0.4); // halved (was 3.0)
-
-      // Fade in at edge
-      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.4 + energy * 1.0); // dampened (was 0.3 + 2.5)
+      // SOFTENED: energy size boost reduced to 1.5 (was 3.0)
+      size           = (baseSize + energy * 1.5) * (1.0 - inwardProg * 0.4);
+      // SOFTENED: energy opacity boost reduced to 1.0 (was 2.5)
+      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.4 + energy * 1.0);
 
     } else {
-      // ── Directional mist (up/down/left/right) ─────────────────────────────
-      // ...
-      const baseSize = 2.5 + seed(i, 0) * 3.5;
-      size           = (baseSize + energy * 1.5) * Math.max(0.3, 1 - travelProgress * 0.35); // halved (was 3.0)
+      const spread1 = seed(i, 2);
+      const spread2 = seed(i, 3);
+      const distOffset = (seed(i, 4) - 0.5) * 200;
+      const drift   = Math.sin(t * 0.5 + i * 1.6) * 50 * spread2;
 
-      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.5 + energy * 1.0); // dampened (was 0.45 + 2.5)
+      const isVertical = direction === "up" || direction === "down";
+      const travel     = isVertical ? TRAVEL_V : TRAVEL_H;
+      const dist       = (travelProgress * travel) + distOffset;
+
+      switch (direction) {
+        case "up":
+          x = spread1 * CANVAS_W + drift;
+          y = CANVAS_H + 100 - dist;
+          break;
+        case "down":
+          x = spread1 * CANVAS_W + drift;
+          y = -100 + dist;
+          break;
+        case "left":
+          x = CANVAS_W + 100 - dist;
+          y = spread1 * CANVAS_H + drift;
+          break;
+        case "right":
+        default:
+          x = -100 + dist;
+          y = spread1 * CANVAS_H + drift;
+          break;
+      }
+
+      const baseSize = 2.5 + seed(i, 0) * 3.5;
+      // SOFTENED: energy size boost reduced to 1.5 (was 3.0)
+      size           = (baseSize + energy * 1.5) * Math.max(0.3, 1 - travelProgress * 0.35);
+      // SOFTENED: energy opacity boost reduced to 1.0 (was 2.5)
+      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.5 + energy * 1.0);
     }
 
     if (opacity < 0.02) continue;
