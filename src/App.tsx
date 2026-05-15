@@ -106,7 +106,26 @@ export const App = () => {
                const time = firstTimed?.time ?? 0;
                return { time, text: lineText, words: words.map(w => w.text) };
              });
-             setLines(lrcLines);
+             // Spread any groups of lines that share the same timestamp.
+             // This happens when Whisper compresses a repeated section (e.g. a chorus)
+             // into fewer words than the user has lines, causing the aligner to jam
+             // multiple lines onto one timestamp. Spreading them makes them readable.
+             const fixed = [...lrcLines];
+             let i = 0;
+             while (i < fixed.length) {
+               let j = i + 1;
+               while (j < fixed.length && fixed[j].time === fixed[i].time) j++;
+               if (j > i + 1) {
+                 const groupTime = fixed[i].time;
+                 const nextTime = j < fixed.length ? fixed[j].time : groupTime + (j - i) * 2.5;
+                 const count = j - i;
+                 for (let k = 0; k < count; k++) {
+                   fixed[i + k] = { ...fixed[i + k], time: groupTime + (nextTime - groupTime) * k / count };
+                 }
+               }
+               i = j;
+             }
+             setLines(fixed);
              setShowLyrics(true);
              setSyncStatus("SYNCED");
           }
@@ -480,9 +499,20 @@ export const App = () => {
                    .join('\n');
                  setRawLyrics(cleaned);
                }} style={{fontSize: '12px'}} />
-               <button className="primary-button" onClick={handleSync} disabled={isSyncing || !rawLyrics} style={{padding: '8px', fontSize: '12px', background: 'var(--accent-blue)'}}>
-                 {isSyncing ? "Syncing..." : syncStatus === "SYNCED" ? "Synced ✓" : "Sync Lyrics"}
+               <button className="primary-button" onClick={handleSync} disabled={isSyncing || !rawLyrics}
+                 style={{padding: '8px', fontSize: '12px', background: 'var(--accent-blue)', lineHeight: 1.4}}>
+                 {isSyncing ? (
+                   <span style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+                     <span>Syncing...</span>
+                     <span style={{fontSize: '10px', opacity: 0.8}}>may take a few min</span>
+                   </span>
+                 ) : syncStatus === "SYNCED" ? "Synced ✓" : "Sync Lyrics"}
                </button>
+               {syncStatus === "SYNCED" && !isSyncing && (
+                 <p style={{color: 'var(--text-secondary)', fontSize: '11px', textAlign: 'center', margin: 0, lineHeight: 1.4}}>
+                   Edit lyrics above and hit Sync again to update
+                 </p>
+               )}
              </div>
           )}
 
@@ -524,7 +554,7 @@ export const App = () => {
               { n: "1", title: "Upload your audio", body: "MP3 or WAV, up to 200MB. The preview activates once both audio and a background are loaded." },
               { n: "2", title: "Upload a background", body: "Any image or video. If your video is shorter than the audio, it will loop continuously to fill the full length." },
               { n: "3", title: "Style it", body: "Pick a visualizer layout and theme. Toggle particles, screen pulse, and overlays. Use Quick Start presets to get something great fast." },
-              { n: "4", title: "Lyrics (optional) & export", body: "Paste lyrics and hit Sync — AI times them to the audio automatically. Bracket tags like [Verse] and [Chorus] are stripped out on paste, so copying from Suno works perfectly. When you're happy with the preview, hit Export MP4. Export requires Chrome or Edge." },
+              { n: "4", title: "Lyrics (optional) & export", body: "Paste lyrics and hit Sync — AI times them to the audio automatically. Each line break becomes one lyric line. Bracket tags like [Verse] and [Chorus] are stripped automatically, so copying from Suno works perfectly. If the timing is off, edit your lyrics and hit Sync again — you can re-sync as many times as you need. When you're happy, hit Export MP4 (Chrome or Edge only)." },
             ].map(step => (
               <div key={step.n} style={{ display: "flex", gap: 16, marginBottom: 20 }}>
                 <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg, #FF2D9B, #7b2fff)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, flexShrink: 0, marginTop: 2 }}>{step.n}</div>

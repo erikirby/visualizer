@@ -36,9 +36,12 @@ self.addEventListener('message', async (event) => {
     // Whisper outputs timestamps if return_timestamps is true.
     // If text is provided, we can pass it as initial_prompt.
     const output = await transcriber(audio, {
-      return_timestamps: 'word', // Word-level timestamps give best accuracy for lyrics
-      chunk_length_s: 30, // Required for long audio
+      return_timestamps: 'word',
+      chunk_length_s: 30,
       stride_length_s: 5,
+      // Prevents Whisper from compressing repeated sections (choruses) by remembering
+      // what it already said — each chunk is transcribed from audio alone
+      condition_on_previous_text: false,
       ...(text ? { initial_prompt: text } : {})
     });
 
