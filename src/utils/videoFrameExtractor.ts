@@ -35,10 +35,13 @@ export async function extractVideoFrames(
     video.currentTime = i / fps;
 
     await new Promise<void>((resolve) => {
+      const done = () => resolve();
+      const timer = setTimeout(done, 2000); // safety: don't hang if seek stalls
+      const finish = () => { clearTimeout(timer); done(); };
       if ("requestVideoFrameCallback" in (video as HTMLVideoElement)) {
-        (video as any).requestVideoFrameCallback(() => resolve());
+        (video as any).requestVideoFrameCallback(finish);
       } else {
-        (video as HTMLVideoElement).addEventListener("seeked", () => resolve(), { once: true });
+        (video as HTMLVideoElement).addEventListener("seeked", finish, { once: true });
       }
     });
 
