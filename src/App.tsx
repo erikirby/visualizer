@@ -169,7 +169,6 @@ export const App = () => {
   const [overlayType, setOverlayType] = useState<any>("none");
   const [overlayOpacity, setOverlayOpacity] = useState<number>(0.5);
   
-  const [showAdvancedVisualizer, setShowAdvancedVisualizer] = useState<boolean>(false);
   const [audioDuration, setAudioDuration] = useState<number>(30);
   const audioDurationRef = useRef<number>(30);
   useEffect(() => { audioDurationRef.current = audioDuration; }, [audioDuration]);
@@ -423,32 +422,23 @@ export const App = () => {
             </select>
           </div>
 
-          {(layout === "constellation" || layout === "solidwave") && (
-            <div onClick={() => setShowAdvancedVisualizer(!showAdvancedVisualizer)} style={{ fontSize: '11px', color: 'var(--accent-blue)', cursor: 'pointer', textAlign: 'right', marginTop: '-12px', fontWeight: 600 }}>
-              {showAdvancedVisualizer ? "− HIDE DETAILS" : "+ CUSTOMIZE LAYOUT"}
+          {layout === "constellation" && (
+            <div className="toggle-group">
+              <label>Show Star Names</label>
+              <label className="switch">
+                <input type="checkbox" checked={showConstellationNames} onChange={e => setShowConstellationNames(e.target.checked)} />
+                <span className="slider"></span>
+              </label>
             </div>
           )}
 
-          {showAdvancedVisualizer && (layout === "constellation" || layout === "solidwave") && (
-            <div className="advanced-panel" style={{ padding: '12px', background: 'rgba(0,0,0,0.15)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {layout === "constellation" && (
-                <div className="toggle-group">
-                  <label>Show Star Names</label>
-                  <label className="switch">
-                    <input type="checkbox" checked={showConstellationNames} onChange={e => setShowConstellationNames(e.target.checked)} />
-                    <span className="slider"></span>
-                  </label>
-                </div>
-              )}
-              {layout === "solidwave" && (
-                <div className="toggle-group">
-                  <label>Mirror Reflection</label>
-                  <label className="switch">
-                    <input type="checkbox" checked={reflection} onChange={e => setReflection(e.target.checked)} />
-                    <span className="slider"></span>
-                  </label>
-                </div>
-              )}
+          {(layout === "bottom" || layout === "audiogram" || layout === "solidwave") && (
+            <div className="toggle-group">
+              <label>Mirror Reflection</label>
+              <label className="switch">
+                <input type="checkbox" checked={reflection} onChange={e => setReflection(e.target.checked)} />
+                <span className="slider"></span>
+              </label>
             </div>
           )}
 
