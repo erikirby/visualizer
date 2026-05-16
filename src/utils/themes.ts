@@ -41,14 +41,12 @@ const IRIDESCENT_PAIRS: [string, string][] = [
   ["#FF6B2D", "#FF2D9B"],   // amber → pink (loops back)
 ];
 
-// Dark cycling: passes through true black, cycles deep saturated darks
+// Dark cycling: black base, vivid accent cycles through red → purple → blue → orange
 const ABYSS_PAIRS: [string, string][] = [
-  ["#000000", "#5C001A"],  // black → deep crimson
-  ["#5C001A", "#00132B"],  // deep crimson → midnight navy
-  ["#00132B", "#1F0040"],  // midnight navy → deep violet
-  ["#1F0040", "#00261A"],  // deep violet → dark forest
-  ["#00261A", "#402000"],  // dark forest → dark ember
-  ["#402000", "#000000"],  // dark ember → black (loop)
+  ["#050505", "#CC0000"],  // black → deep red (Crimson Night)
+  ["#050505", "#9B2DFF"],  // black → vivid purple (Dark Violet)
+  ["#050505", "#0055FF"],  // black → electric blue
+  ["#050505", "#FF5500"],  // black → vivid orange
 ];
 
 const PASTEL_PAIRS: [string, string][] = [
