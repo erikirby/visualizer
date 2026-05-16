@@ -55,29 +55,52 @@ async function matchThemeToImage(imageUrl: string): Promise<number> {
       const ctx = canvas.getContext("2d")!;
       ctx.drawImage(img, 0, 0, 64, 64);
       const data = ctx.getImageData(0, 0, 64, 64).data;
-      let sinSum = 0, cosSum = 0, count = 0;
+      let sinSum = 0, cosSum = 0, colorCount = 0;
+      let totalL = 0, totalS = 0;
+      const pixelCount = data.length / 4;
+
       for (let i = 0; i < data.length; i += 4) {
         const r = data[i]! / 255, g = data[i + 1]! / 255, b = data[i + 2]! / 255;
         const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
         const l = (max + min) / 2;
-        if (d < 0.12 || l < 0.08 || l > 0.92) continue;
-        const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        if (s < 0.18) continue;
+        const s = d < 0.001 ? 0 : (l > 0.5 ? d / (2 - max - min) : d / (max + min));
+        totalL += l;
+        totalS += s;
+        // Looser thresholds — only skip near-black/white and near-grey
+        if (d < 0.07 || l < 0.04 || l > 0.96 || s < 0.08) continue;
         let h = 0;
         if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60;
         else if (max === g) h = ((b - r) / d + 2) * 60;
         else h = ((r - g) / d + 4) * 60;
-        sinSum += Math.sin(h * Math.PI / 180) * s;
-        cosSum += Math.cos(h * Math.PI / 180) * s;
-        count++;
+        // Weight by saturation × chroma so vivid pixels dominate
+        const w = s * (1 - Math.abs(2 * l - 1));
+        sinSum += Math.sin(h * Math.PI / 180) * w;
+        cosSum += Math.cos(h * Math.PI / 180) * w;
+        colorCount++;
       }
-      if (count === 0) { resolve([1, 2, 3, 4, 5][Math.floor(Math.random() * 5)]!); return; }
+
+      const avgL = totalL / pixelCount;
+      const avgS = totalS / pixelCount;
+
+      // Very dark or desaturated image → use a dark theme
+      if (avgL < 0.22 || (colorCount < 40 && avgS < 0.12)) {
+        resolve([7, 8, 11][Math.floor(Math.random() * 3)]!);
+        return;
+      }
+      // Not enough colorful pixels to reliably read hue
+      if (colorCount < 40) {
+        resolve([1, 3, 6][Math.floor(Math.random() * 3)]!);
+        return;
+      }
+
       let avgHue = Math.atan2(sinSum, cosSum) * 180 / Math.PI;
       if (avgHue < 0) avgHue += 360;
-      // Target: complement of dominant hue + small jitter for variation on re-click
-      const jitter = (Math.random() - 0.5) * 30;
-      const targetHue = (avgHue + 180 + jitter + 360) % 360;
-      // colorA hue for each static theme
+
+      // Small jitter so re-clicking gives slight variation
+      const jitter = (Math.random() - 0.5) * 22;
+      const targetHue = (avgHue + jitter + 360) % 360;
+
+      // Match directly to the image's dominant hue (not complement)
       const themeHues: [number, number][] = [
         [1, 325], [2, 276], [3, 175], [4, 33], [5, 150],
         [8, 0], [12, 2], [9, 325], [10, 330],
