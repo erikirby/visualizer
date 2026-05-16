@@ -156,6 +156,7 @@ const themes = [
   { id: 9,  name: "Iridescent (Cycling)" },
   { id: 10, name: "Pastel Rainbow (Cycling)" },
   { id: 11, name: "Abyss (Dark Cycling)" },
+  { id: 13, name: "Neon Night (Cycling)" },
 ];
 
 const fontFamilies = [

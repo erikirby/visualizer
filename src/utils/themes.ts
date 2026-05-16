@@ -23,6 +23,7 @@ export const THEMES: Theme[] = [
   { id: 7,  name: "Dark Violet",  colorA: "#1A0A2E", colorB: "#9B2DFF" }, // near-black → vivid purple
   { id: 8,  name: "Crimson Night",colorA: "#CC0000", colorB: "#0A0A0A" }, // deep red → near-black
   { id: 12, name: "Laser",        colorA: "#FF0A0A", colorB: "#FF8800" }, // vivid red → vivid orange
+  { id: 13, name: "Neon Night",   colorA: "#DD0066", colorB: "#0044EE" }, // preview swatch only — cycling
 ];
 
 export const DEFAULT_THEME = THEMES[0]!;
@@ -30,7 +31,7 @@ export const DEFAULT_THEME = THEMES[0]!;
 // ── Cycling themes ────────────────────────────────────────────────────────
 // These themes slowly rotate through curated color pairs over the song.
 // Each entry is [colorA, colorB] — complementary/split-complementary pairs.
-export const CYCLING_THEME_IDS = [9, 10, 11] as const;
+export const CYCLING_THEME_IDS = [9, 10, 11, 13] as const;
 
 const IRIDESCENT_PAIRS: [string, string][] = [
   ["#FF2D9B", "#00B4FF"],   // pink → blue
@@ -47,6 +48,15 @@ const ABYSS_PAIRS: [string, string][] = [
   ["#050505", "#9B2DFF"],  // black → vivid purple (Dark Violet)
   ["#050505", "#0055FF"],  // black → electric blue
   ["#050505", "#FF5500"],  // black → vivid orange
+];
+
+// Neon Night: stays locked in pink/blue/purple — never goes warm or pastel.
+// Designed for dark moody images with neon lighting.
+const NEON_NIGHT_PAIRS: [string, string][] = [
+  ["#DD0066", "#0044EE"],  // hot pink → electric blue (mirrors neon bar lighting)
+  ["#0044EE", "#7700CC"],  // electric blue → vivid purple
+  ["#7700CC", "#FF0088"],  // vivid purple → hot magenta
+  ["#FF0088", "#0022BB"],  // hot magenta → deep blue
 ];
 
 const PASTEL_PAIRS: [string, string][] = [
@@ -72,8 +82,8 @@ export function getTheme(id?: number): Theme {
  * Cycle duration: ~45 seconds per pair.
  */
 export function getThemeAtTime(id: number | undefined, timeSec: number): { colorA: string; colorB: string } {
-  if (id === 9 || id === 10 || id === 11) {
-    const pairs = id === 9 ? IRIDESCENT_PAIRS : id === 10 ? PASTEL_PAIRS : ABYSS_PAIRS;
+  if (id === 9 || id === 10 || id === 11 || id === 13) {
+    const pairs = id === 9 ? IRIDESCENT_PAIRS : id === 10 ? PASTEL_PAIRS : id === 13 ? NEON_NIGHT_PAIRS : ABYSS_PAIRS;
     const cycleDuration = 45; // seconds per pair
     const totalCycle = pairs.length * cycleDuration;
     const t = (timeSec % totalCycle) / cycleDuration;
