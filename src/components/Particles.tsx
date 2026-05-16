@@ -12,6 +12,7 @@ interface ParticlesProps {
   reactiveSpeed?: boolean;
   speedMultiplier?: number;
   countMultiplier?: number;
+  opacityMultiplier?: number;
   colorA?: string;
   colorB?: string;
 }
@@ -43,12 +44,13 @@ const CY = CANVAS_H / 2;
 
 export const Particles: React.FC<ParticlesProps> = ({
   audioSrc,
-  direction     = "up",
-  reactiveSpeed = true,
+  direction       = "up",
+  reactiveSpeed   = true,
   speedMultiplier = 1.0,
   countMultiplier = 1.0,
-  colorA        = "#FF2D9B",
-  colorB        = "#00B4FF",
+  opacityMultiplier = 1.0,
+  colorA          = "#FF2D9B",
+  colorB          = "#00B4FF",
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -103,7 +105,7 @@ export const Particles: React.FC<ParticlesProps> = ({
 
       const baseSize = 2.5 + seed(i, 0) * 3.5;
       size    = (baseSize + energySize) * Math.max(0.3, 1 - travelProgress * 0.45);
-      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.4 + energyOpacity);
+      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, (0.4 + energyOpacity) * opacityMultiplier);
 
     } else if (isInward) {
       const goldenAngle = i * 2.39996;
@@ -122,7 +124,7 @@ export const Particles: React.FC<ParticlesProps> = ({
 
       const baseSize = 2.5 + seed(i, 0) * 3.5;
       size    = (baseSize + energySize) * (1.0 - inwardProg * 0.4);
-      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.4 + energyOpacity);
+      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, (0.4 + energyOpacity) * opacityMultiplier);
 
     } else {
       const spread1 = seed(i, 2);
@@ -156,7 +158,7 @@ export const Particles: React.FC<ParticlesProps> = ({
 
       const baseSize = 2.5 + seed(i, 0) * 3.5;
       size    = (baseSize + energySize) * Math.max(0.3, 1 - travelProgress * 0.35);
-      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, 0.5 + energyOpacity);
+      opacity = fadeIn * fadeOut * particleBrightness * Math.min(1, (0.5 + energyOpacity) * opacityMultiplier);
     }
 
     if (opacity < 0.02) continue;

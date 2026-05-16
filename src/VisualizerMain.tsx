@@ -46,6 +46,7 @@ export type VisualizerProps = {
   particleDirection?: ParticleDirection;
   particleSpeed?: number;
   particleCount?: number;
+  particleOpacity?: number;
   // Visualizer customization (applies to bottom + solidwave)
   reflection?: boolean;
   waveDelay?: boolean;
@@ -92,6 +93,7 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
   particleDirection,
   particleSpeed     = 1.0,
   particleCount     = 1.0,
+  particleOpacity   = 1.0,
   reflection,                    // undefined = use layout default
   waveDelay         = false,
   rumble            = false,
@@ -204,7 +206,7 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
       {showVisualizer && layout === "constellation" && <ConstellationNet audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} seed={Math.floor((audioDuration as number) * 100)} showNames={showConstellationNames} drawSpeed={constellationDrawSpeed} spectrumType={spectrumType} />}
 
       {showParticles && (
-        <Particles audioSrc={audioSrc as string} direction={particleDir} reactiveSpeed={particlePulse} speedMultiplier={particleSpeed} countMultiplier={particleCount} colorA={colorA} colorB={colorB} />
+        <Particles audioSrc={audioSrc as string} direction={particleDir} reactiveSpeed={particlePulse} speedMultiplier={particleSpeed} countMultiplier={particleCount} opacityMultiplier={particleOpacity} colorA={colorA} colorB={colorB} />
       )}
 
       {/* Lyrics Engine — independently toggled */}

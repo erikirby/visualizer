@@ -238,6 +238,7 @@ export const App = () => {
   const [particleDirection, setParticleDirection] = useState<any>("auto");
   const [particleSpeed, setParticleSpeed] = useState<number>(0.3);
   const [particleCount, setParticleCount] = useState<number>(1.0);
+  const [particleOpacity, setParticleOpacity] = useState<number>(1.0);
 
   // Sensible particle density per layout — applied when particles are first turned on
   const PARTICLE_COUNT_DEFAULTS: Partial<Record<VisualizerLayout, number>> = {
@@ -503,6 +504,7 @@ export const App = () => {
     particleDirection,
     particleSpeed,
     particleCount,
+    particleOpacity,
     particlePulse,
     themeId,
     overlayType,
@@ -703,6 +705,10 @@ export const App = () => {
               <div className="control-group">
                 <label>Amount <span className="label-value">{Math.round(particleCount / 4.0 * 100)}%</span></label>
                 <input type="range" className="range-input" min="0.25" max="16" step="0.25" value={particleCount} onChange={e => setParticleCount(Number(e.target.value))} />
+              </div>
+              <div className="control-group">
+                <label>Opacity <span className="label-value">{Math.round(particleOpacity * 100)}%</span></label>
+                <input type="range" className="range-input" min="0.2" max="2.5" step="0.05" value={particleOpacity} onChange={e => setParticleOpacity(Number(e.target.value))} />
               </div>
               <div className="toggle-group">
                 <label>Audio Reactive</label>
