@@ -333,7 +333,7 @@ export const ConstellationNet: React.FC<ConstellationNetProps> = ({
   const vizRaw     = visualizeAudio({ fps, frame, audioData, numberOfSamples: 256, smoothing: true });
   const bars       = getMusicViz(vizRaw, NUM_BARS, spectrumType);
   const bassEnergy = getBassEnergy(bars);
-  const glowSize   = 2.5 + bassEnergy * 11;
+  const glowSize   = 2.5 + bassEnergy * 18;
 
   // Sky drift
   const driftProgress = (frame / fps) / DRIFT_PERIOD_S;
@@ -374,8 +374,8 @@ export const ConstellationNet: React.FC<ConstellationNetProps> = ({
       const baseOp = 0.25 + mag * 0.55;
 
       // Frequency reactivity — ALWAYS pulsing
-      const freqPulseR  = bassEnergy * 5.0 * (0.5 + energy * 0.8);
-      const freqPulseOp = energy * 0.35;
+      const freqPulseR  = bassEnergy * 9.0 * (0.5 + energy * 0.8);
+      const freqPulseOp = energy * 0.5;
 
       const r  = Math.max(0.8, baseR  + freqPulseR).toFixed(2);
       const op = (Math.min(1, baseOp + freqPulseOp + twinkle) * opacity).toFixed(3);
