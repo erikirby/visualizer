@@ -14,14 +14,15 @@ export interface Theme {
 }
 
 export const THEMES: Theme[] = [
-  { id: 1, name: "Neon",         colorA: "#FF2D9B", colorB: "#00B4FF" }, // hot pink → electric blue (default)
-  { id: 2, name: "Violet Storm", colorA: "#9B2DFF", colorB: "#FF6B2D" }, // deep purple → amber
-  { id: 3, name: "Arctic",       colorA: "#2DFFEE", colorB: "#2D6BFF" }, // cyan → cobalt
-  { id: 4, name: "Solar",        colorA: "#FF8C00", colorB: "#FFE500" }, // orange → gold
-  { id: 5, name: "Toxic",        colorA: "#00FF88", colorB: "#FF2D9B" }, // neon green → hot pink
-  { id: 6, name: "Monochrome",   colorA: "#FFFFFF", colorB: "#8888AA" }, // white → cool grey
-  { id: 7, name: "Dark Violet",  colorA: "#1A0A2E", colorB: "#9B2DFF" }, // near-black → vivid purple
-  { id: 8, name: "Crimson Night",colorA: "#CC0000", colorB: "#0A0A0A" }, // deep red → near-black
+  { id: 1,  name: "Neon",         colorA: "#FF2D9B", colorB: "#00B4FF" }, // hot pink → electric blue (default)
+  { id: 2,  name: "Violet Storm", colorA: "#9B2DFF", colorB: "#FF6B2D" }, // deep purple → amber
+  { id: 3,  name: "Arctic",       colorA: "#2DFFEE", colorB: "#2D6BFF" }, // cyan → cobalt
+  { id: 4,  name: "Solar",        colorA: "#FF8C00", colorB: "#FFE500" }, // orange → gold
+  { id: 5,  name: "Toxic",        colorA: "#00FF88", colorB: "#FF2D9B" }, // neon green → hot pink
+  { id: 6,  name: "Monochrome",   colorA: "#FFFFFF", colorB: "#8888AA" }, // white → cool grey
+  { id: 7,  name: "Dark Violet",  colorA: "#1A0A2E", colorB: "#9B2DFF" }, // near-black → vivid purple
+  { id: 8,  name: "Crimson Night",colorA: "#CC0000", colorB: "#0A0A0A" }, // deep red → near-black
+  { id: 12, name: "Laser",        colorA: "#FF0A0A", colorB: "#FF8800" }, // vivid red → vivid orange
 ];
 
 export const DEFAULT_THEME = THEMES[0]!;
@@ -29,7 +30,7 @@ export const DEFAULT_THEME = THEMES[0]!;
 // ── Cycling themes ────────────────────────────────────────────────────────
 // These themes slowly rotate through curated color pairs over the song.
 // Each entry is [colorA, colorB] — complementary/split-complementary pairs.
-export const CYCLING_THEME_IDS = [9, 10] as const;
+export const CYCLING_THEME_IDS = [9, 10, 11] as const;
 
 const IRIDESCENT_PAIRS: [string, string][] = [
   ["#FF2D9B", "#00B4FF"],   // pink → blue
@@ -38,6 +39,16 @@ const IRIDESCENT_PAIRS: [string, string][] = [
   ["#9B2DFF", "#2DFFEE"],   // purple → cyan
   ["#2DFFEE", "#FF6B2D"],   // cyan → amber
   ["#FF6B2D", "#FF2D9B"],   // amber → pink (loops back)
+];
+
+// Dark cycling: passes through true black, cycles deep saturated darks
+const ABYSS_PAIRS: [string, string][] = [
+  ["#000000", "#5C001A"],  // black → deep crimson
+  ["#5C001A", "#00132B"],  // deep crimson → midnight navy
+  ["#00132B", "#1F0040"],  // midnight navy → deep violet
+  ["#1F0040", "#00261A"],  // deep violet → dark forest
+  ["#00261A", "#402000"],  // dark forest → dark ember
+  ["#402000", "#000000"],  // dark ember → black (loop)
 ];
 
 const PASTEL_PAIRS: [string, string][] = [
@@ -63,8 +74,8 @@ export function getTheme(id?: number): Theme {
  * Cycle duration: ~45 seconds per pair.
  */
 export function getThemeAtTime(id: number | undefined, timeSec: number): { colorA: string; colorB: string } {
-  if (id === 9 || id === 10) {
-    const pairs = id === 9 ? IRIDESCENT_PAIRS : PASTEL_PAIRS;
+  if (id === 9 || id === 10 || id === 11) {
+    const pairs = id === 9 ? IRIDESCENT_PAIRS : id === 10 ? PASTEL_PAIRS : ABYSS_PAIRS;
     const cycleDuration = 45; // seconds per pair
     const totalCycle = pairs.length * cycleDuration;
     const t = (timeSec % totalCycle) / cycleDuration;

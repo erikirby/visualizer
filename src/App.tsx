@@ -68,16 +68,18 @@ const layouts = [
 ];
 
 const themes = [
-  { id: 1, name: "Neon (Pink/Blue)" },
-  { id: 2, name: "Violet Storm (Purple/Amber)" },
-  { id: 3, name: "Arctic (Cyan/Cobalt)" },
-  { id: 4, name: "Solar (Orange/Gold)" },
-  { id: 5, name: "Toxic (Green/Pink)" },
-  { id: 6, name: "Monochrome (White/Grey)" },
-  { id: 7, name: "Dark Violet (Black/Purple)" },
-  { id: 8, name: "Crimson Night (Red/Black)" },
-  { id: 9, name: "Iridescent (Cycling)" },
+  { id: 1,  name: "Neon (Pink/Blue)" },
+  { id: 2,  name: "Violet Storm (Purple/Amber)" },
+  { id: 3,  name: "Arctic (Cyan/Cobalt)" },
+  { id: 4,  name: "Solar (Orange/Gold)" },
+  { id: 5,  name: "Toxic (Green/Pink)" },
+  { id: 6,  name: "Monochrome (White/Grey)" },
+  { id: 7,  name: "Dark Violet (Black/Purple)" },
+  { id: 8,  name: "Crimson Night (Red/Black)" },
+  { id: 12, name: "Laser (Red/Orange)" },
+  { id: 9,  name: "Iridescent (Cycling)" },
   { id: 10, name: "Pastel Rainbow (Cycling)" },
+  { id: 11, name: "Abyss (Dark Cycling)" },
 ];
 
 const fontFamilies = [
@@ -188,9 +190,9 @@ export const App = () => {
 
   // Sensible particle density per layout — applied when particles are first turned on
   const PARTICLE_COUNT_DEFAULTS: Partial<Record<VisualizerLayout, number>> = {
-    bottom: 2.0, audiogram: 2.0, solidwave: 2.0,
-    rings: 1.5, echo: 2.5, "echo-solid": 2.5,
-    dna: 1.5, constellation: 2.0,
+    bottom: 4.0, audiogram: 4.0, solidwave: 4.0,
+    rings: 3.0, echo: 5.0, "echo-solid": 5.0,
+    dna: 3.0, constellation: 4.0,
   };
   const handleToggleParticles = (on: boolean) => {
     setShowParticles(on);
@@ -615,8 +617,8 @@ export const App = () => {
                 <input type="range" className="range-input" min="0.05" max="0.55" step="0.025" value={particleSpeed} onChange={e => setParticleSpeed(Number(e.target.value))} />
               </div>
               <div className="control-group">
-                <label>Amount <span className="label-value">{Math.round(particleCount / 2.0 * 100)}%</span></label>
-                <input type="range" className="range-input" min="0.25" max="4" step="0.25" value={particleCount} onChange={e => setParticleCount(Number(e.target.value))} />
+                <label>Amount <span className="label-value">{Math.round(particleCount / 4.0 * 100)}%</span></label>
+                <input type="range" className="range-input" min="0.25" max="16" step="0.25" value={particleCount} onChange={e => setParticleCount(Number(e.target.value))} />
               </div>
               <div className="toggle-group">
                 <label>Audio Reactive</label>
