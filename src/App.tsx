@@ -46,7 +46,26 @@ function cropImageToCover(src: string, targetW: number, targetH: number): Promis
 // Analyze a background image URL and return the theme id whose colorA is
 // complementary to the image's dominant saturated hue. Uses circular-mean
 // for correct hue averaging across the hue wheel.
-async function matchThemeToImage(imageUrl: string): Promise<number> {
+function hslToHex(h: number, s: number, l: number): string {
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  let r = 0, g = 0, b = 0;
+  const seg = Math.floor(h / 60) % 6;
+  if (seg === 0) { r = c; g = x; }
+  else if (seg === 1) { r = x; g = c; }
+  else if (seg === 2) { g = c; b = x; }
+  else if (seg === 3) { g = x; b = c; }
+  else if (seg === 4) { r = x; b = c; }
+  else { r = c; b = x; }
+  const rr = Math.round((r + m) * 255), gg = Math.round((g + m) * 255), bb = Math.round((b + m) * 255);
+  return `#${rr.toString(16).padStart(2, "0")}${gg.toString(16).padStart(2, "0")}${bb.toString(16).padStart(2, "0")}`;
+}
+
+// Extracts two vivid colors directly from the image pixels.
+// Buckets hues into 30° slots, picks the top two that are ≥60° apart,
+// then boosts both to vivid HSL so they pop against the video.
+async function extractImageColors(imageUrl: string): Promise<{ colorA: string; colorB: string }> {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
@@ -55,64 +74,55 @@ async function matchThemeToImage(imageUrl: string): Promise<number> {
       const ctx = canvas.getContext("2d")!;
       ctx.drawImage(img, 0, 0, 64, 64);
       const data = ctx.getImageData(0, 0, 64, 64).data;
-      let sinSum = 0, cosSum = 0, colorCount = 0;
-      let totalL = 0, totalS = 0;
+
+      const buckets = Array.from({ length: 12 }, () => ({ weight: 0 }));
+      let totalL = 0;
       const pixelCount = data.length / 4;
 
       for (let i = 0; i < data.length; i += 4) {
         const r = data[i]! / 255, g = data[i + 1]! / 255, b = data[i + 2]! / 255;
         const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
         const l = (max + min) / 2;
-        const s = d < 0.001 ? 0 : (l > 0.5 ? d / (2 - max - min) : d / (max + min));
         totalL += l;
-        totalS += s;
-        // Looser thresholds — only skip near-black/white and near-grey
-        if (d < 0.07 || l < 0.04 || l > 0.96 || s < 0.08) continue;
+        if (d < 0.07 || l < 0.05 || l > 0.95) continue;
+        const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        if (s < 0.1) continue;
         let h = 0;
         if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60;
         else if (max === g) h = ((b - r) / d + 2) * 60;
         else h = ((r - g) / d + 4) * 60;
-        // Weight by saturation × chroma so vivid pixels dominate
-        const w = s * (1 - Math.abs(2 * l - 1));
-        sinSum += Math.sin(h * Math.PI / 180) * w;
-        cosSum += Math.cos(h * Math.PI / 180) * w;
-        colorCount++;
+        buckets[Math.floor(h / 30) % 12]!.weight += s * (1 - Math.abs(2 * l - 1));
       }
 
       const avgL = totalL / pixelCount;
-      const avgS = totalS / pixelCount;
-
-      // Very dark or desaturated image → use a dark theme
-      if (avgL < 0.22 || (colorCount < 40 && avgS < 0.12)) {
-        resolve([7, 8, 11][Math.floor(Math.random() * 3)]!);
-        return;
-      }
-      // Not enough colorful pixels to reliably read hue
-      if (colorCount < 40) {
-        resolve([1, 3, 6][Math.floor(Math.random() * 3)]!);
+      if (avgL < 0.18) {
+        resolve({ colorA: "#9B2DFF", colorB: "#1A0A2E" });
         return;
       }
 
-      let avgHue = Math.atan2(sinSum, cosSum) * 180 / Math.PI;
-      if (avgHue < 0) avgHue += 360;
+      const sorted = buckets
+        .map((b, i) => ({ weight: b.weight, hue: i * 30 + 15 }))
+        .filter(b => b.weight > 0)
+        .sort((a, b) => b.weight - a.weight);
 
-      // Small jitter so re-clicking gives slight variation
-      const jitter = (Math.random() - 0.5) * 22;
-      const targetHue = (avgHue + jitter + 360) % 360;
-
-      // Match directly to the image's dominant hue (not complement)
-      const themeHues: [number, number][] = [
-        [1, 325], [2, 276], [3, 175], [4, 33], [5, 150],
-        [8, 0], [12, 2], [9, 325], [10, 330],
-      ];
-      let bestId = 1, bestDist = Infinity;
-      for (const [id, h] of themeHues) {
-        const dist = Math.min(Math.abs(h - targetHue), 360 - Math.abs(h - targetHue));
-        if (dist < bestDist) { bestDist = dist; bestId = id; }
+      if (sorted.length === 0) {
+        resolve({ colorA: "#FF2D9B", colorB: "#00B4FF" });
+        return;
       }
-      resolve(bestId);
+
+      const hueA = sorted[0]!.hue;
+      const colorA = hslToHex(hueA, 0.88, 0.55);
+
+      const second = sorted.slice(1).find(b => {
+        const diff = Math.min(Math.abs(b.hue - hueA), 360 - Math.abs(b.hue - hueA));
+        return diff >= 60;
+      });
+      const hueB = second ? second.hue : (hueA + 150) % 360;
+      const colorB = hslToHex(hueB, 0.85, 0.52);
+
+      resolve({ colorA, colorB });
     };
-    img.onerror = () => resolve(1);
+    img.onerror = () => resolve({ colorA: "#FF2D9B", colorB: "#00B4FF" });
     img.src = imageUrl;
   });
 }
@@ -262,6 +272,8 @@ export const App = () => {
   const [particleSpeed, setParticleSpeed] = useState<number>(0.3);
   const [particleCount, setParticleCount] = useState<number>(1.0);
   const [particleOpacity, setParticleOpacity] = useState<number>(1.0);
+  const [customColorA, setCustomColorA] = useState<string | null>(null);
+  const [customColorB, setCustomColorB] = useState<string | null>(null);
 
   // Sensible particle density per layout — applied when particles are first turned on
   const PARTICLE_COUNT_DEFAULTS: Partial<Record<VisualizerLayout, number>> = {
@@ -327,13 +339,7 @@ export const App = () => {
     const overlayOpts = ["none", "none", "light-leak", "scanlines"];
     const randomOverlay = overlayOpts[Math.floor(Math.random() * overlayOpts.length)]!;
 
-    let matchedId = themes[Math.floor(Math.random() * themes.length)]!.id;
-    if (backgroundUrl && !bgIsVideo) {
-      matchedId = await matchThemeToImage(backgroundUrl);
-    }
-
     setLayout(randomLayout);
-    setThemeId(matchedId);
     setShowParticles(showP);
     if (showP) {
       setParticleDirection(randomDir);
@@ -343,6 +349,16 @@ export const App = () => {
     }
     setOverlayType(randomOverlay);
     if (randomOverlay === "light-leak") setOverlayOpacity(0.3 + Math.random() * 0.25);
+
+    if (backgroundUrl && !bgIsVideo) {
+      const { colorA, colorB } = await extractImageColors(backgroundUrl);
+      setCustomColorA(colorA);
+      setCustomColorB(colorB);
+    } else {
+      setCustomColorA(null);
+      setCustomColorB(null);
+      setThemeId(themes[Math.floor(Math.random() * themes.length)]!.id);
+    }
   };
 
   const [isRendering, setIsRendering] = useState(false);
@@ -529,6 +545,8 @@ export const App = () => {
     particleCount,
     particleOpacity,
     particlePulse,
+    ...(customColorA ? { customColorA } : {}),
+    ...(customColorB ? { customColorB } : {}),
     themeId,
     overlayType,
     overlayOpacity,
@@ -619,7 +637,7 @@ export const App = () => {
           </div>
           <div className="control-group">
             <label>Theme</label>
-            <select className="select-input" value={themeId} onChange={e => setThemeId(Number(e.target.value))}>
+            <select className="select-input" value={themeId} onChange={e => { setThemeId(Number(e.target.value)); setCustomColorA(null); setCustomColorB(null); }}>
               {themes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </div>

@@ -78,6 +78,8 @@ export type VisualizerProps = {
   constellationDrawSpeed?: number;
   isExporting?: boolean;
   spectrumType?: "bass" | "wide";
+  customColorA?: string;
+  customColorB?: string;
 } & Record<string, unknown>;
 
 export const VisualizerMain: React.FC<VisualizerProps> = ({
@@ -119,14 +121,18 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
   constellationDrawSpeed = 1,
   isExporting = false,
   spectrumType = "wide",
+  customColorA,
+  customColorB,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const audioData = useAudioData(audioSrc as string);
   const currentTime = frame / fps;
 
-  // Resolve theme colors — cycling themes use currentTime
-  const { colorA, colorB } = getThemeAtTime(themeId, currentTime);
+  // Resolve theme colors — custom colors (from Vibe Match) override the theme
+  const { colorA: themeColorA, colorB: themeColorB } = getThemeAtTime(themeId, currentTime);
+  const colorA = customColorA ?? themeColorA;
+  const colorB = customColorB ?? themeColorB;
 
   // SolidWave looks best mirrored by default; bars do not.
   const effectiveReflection = reflection ?? (layout === "solidwave");
