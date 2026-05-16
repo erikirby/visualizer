@@ -76,14 +76,11 @@ async function extractImageColors(imageUrl: string): Promise<{ colorA: string; c
       const data = ctx.getImageData(0, 0, 64, 64).data;
 
       const buckets = Array.from({ length: 12 }, () => ({ weight: 0 }));
-      let totalL = 0;
-      const pixelCount = data.length / 4;
 
       for (let i = 0; i < data.length; i += 4) {
         const r = data[i]! / 255, g = data[i + 1]! / 255, b = data[i + 2]! / 255;
         const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
         const l = (max + min) / 2;
-        totalL += l;
         if (d < 0.07 || l < 0.05 || l > 0.95) continue;
         const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
         if (s < 0.1) continue;
@@ -94,17 +91,12 @@ async function extractImageColors(imageUrl: string): Promise<{ colorA: string; c
         buckets[Math.floor(h / 30) % 12]!.weight += s * (1 - Math.abs(2 * l - 1));
       }
 
-      const avgL = totalL / pixelCount;
-      if (avgL < 0.18) {
-        resolve({ colorA: "#9B2DFF", colorB: "#1A0A2E" });
-        return;
-      }
-
       const sorted = buckets
         .map((b, i) => ({ weight: b.weight, hue: i * 30 + 15 }))
         .filter(b => b.weight > 0)
         .sort((a, b) => b.weight - a.weight);
 
+      // No colorful pixels found at all → generic vivid fallback
       if (sorted.length === 0) {
         resolve({ colorA: "#FF2D9B", colorB: "#00B4FF" });
         return;
