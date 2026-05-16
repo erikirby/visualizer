@@ -43,6 +43,57 @@ function cropImageToCover(src: string, targetW: number, targetH: number): Promis
   });
 }
 
+// Analyze a background image URL and return the theme id whose colorA is
+// complementary to the image's dominant saturated hue. Uses circular-mean
+// for correct hue averaging across the hue wheel.
+async function matchThemeToImage(imageUrl: string): Promise<number> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 64; canvas.height = 64;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, 64, 64);
+      const data = ctx.getImageData(0, 0, 64, 64).data;
+      let sinSum = 0, cosSum = 0, count = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i]! / 255, g = data[i + 1]! / 255, b = data[i + 2]! / 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+        const l = (max + min) / 2;
+        if (d < 0.12 || l < 0.08 || l > 0.92) continue;
+        const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        if (s < 0.18) continue;
+        let h = 0;
+        if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60;
+        else if (max === g) h = ((b - r) / d + 2) * 60;
+        else h = ((r - g) / d + 4) * 60;
+        sinSum += Math.sin(h * Math.PI / 180) * s;
+        cosSum += Math.cos(h * Math.PI / 180) * s;
+        count++;
+      }
+      if (count === 0) { resolve([1, 2, 3, 4, 5][Math.floor(Math.random() * 5)]!); return; }
+      let avgHue = Math.atan2(sinSum, cosSum) * 180 / Math.PI;
+      if (avgHue < 0) avgHue += 360;
+      // Target: complement of dominant hue + small jitter for variation on re-click
+      const jitter = (Math.random() - 0.5) * 30;
+      const targetHue = (avgHue + 180 + jitter + 360) % 360;
+      // colorA hue for each static theme
+      const themeHues: [number, number][] = [
+        [1, 325], [2, 276], [3, 175], [4, 33], [5, 150],
+        [8, 0], [12, 2], [9, 325], [10, 330],
+      ];
+      let bestId = 1, bestDist = Infinity;
+      for (const [id, h] of themeHues) {
+        const dist = Math.min(Math.abs(h - targetHue), 360 - Math.abs(h - targetHue));
+        if (dist < bestDist) { bestDist = dist; bestId = id; }
+      }
+      resolve(bestId);
+    };
+    img.onerror = () => resolve(1);
+    img.src = imageUrl;
+  });
+}
+
 // Helper function to decode audio blob into Float32Array at 16kHz (Whisper format)
 async function decodeAudio(url: string): Promise<Float32Array> {
   const response = await fetch(url);
@@ -223,10 +274,11 @@ export const App = () => {
   useEffect(() => { audioDurationRef.current = audioDuration; }, [audioDuration]);
 
   const presets = [
-    { id: "midnight",   name: "Neon Constellation", desc: "Cosmic, electric",  colorA: "#FF2D9B", colorB: "#00B4FF", config: { themeId: 1, layout: "constellation", showParticles: true,  particleDirection: "in",  particleSpeed: 0.18, particleCount: 1.26, particlePulse: false, overlayType: "light-leak", overlayOpacity: 0.4 } },
-    { id: "electric",   name: "Acid Wave",          desc: "Punchy, toxic",     colorA: "#00FF88", colorB: "#FF2D9B", config: { themeId: 5, layout: "solidwave",     showParticles: true,  particleDirection: "up",  overlayType: "scanlines",   overlayOpacity: 0.3 } },
-    { id: "minimal",    name: "Ice Cold",            desc: "Minimal, clean",    colorA: "#2DFFEE", colorB: "#2D6BFF", config: { themeId: 3, layout: "bottom",        showParticles: false, overlayType: "none" } },
-    { id: "iridescent", name: "Iridescent Orbit",   desc: "Fluid, dreamy",     colorA: "#FF6B2D", colorB: "#9B2DFF", config: { themeId: 9, layout: "echo",          showParticles: true,  particleDirection: "out", overlayType: "light-leak", overlayOpacity: 0.4 } },
+    { id: "midnight",    name: "Neon Constellation", desc: "Cosmic, electric",  colorA: "#FF2D9B", colorB: "#00B4FF", config: { themeId: 1, layout: "constellation", showParticles: true,  particleDirection: "in",  particleSpeed: 0.18, particleCount: 1.26, particlePulse: false, overlayType: "light-leak", overlayOpacity: 0.4 } },
+    { id: "electric",    name: "Acid Wave",           desc: "Punchy, toxic",     colorA: "#00FF88", colorB: "#FF2D9B", config: { themeId: 5, layout: "solidwave",     showParticles: true,  particleDirection: "up",  overlayType: "scanlines",   overlayOpacity: 0.3 } },
+    { id: "minimal",     name: "Ice Cold",             desc: "Minimal, clean",    colorA: "#2DFFEE", colorB: "#2D6BFF", config: { themeId: 3, layout: "bottom",        showParticles: false, overlayType: "none" } },
+    { id: "iridescent",  name: "Iridescent Orbit",    desc: "Fluid, dreamy",     colorA: "#FF6B2D", colorB: "#9B2DFF", config: { themeId: 9, layout: "echo",          showParticles: true,  particleDirection: "out", overlayType: "light-leak", overlayOpacity: 0.4 } },
+    { id: "violetRings", name: "Violet Rings",         desc: "Dark, pulsing",     colorA: "#9B2DFF", colorB: "#FF6B2D", config: { themeId: 2, layout: "rings",         showParticles: true,  particleDirection: "out", particleSpeed: 0.22, particleCount: 3.0,  particlePulse: true, overlayType: "light-leak", overlayOpacity: 0.45 } },
   ];
 
   const applyPreset = (preset: any) => {
@@ -240,6 +292,33 @@ export const App = () => {
     if (c.particlePulse !== undefined) setParticlePulse(c.particlePulse);
     if (c.overlayType !== undefined) setOverlayType(c.overlayType);
     if (c.overlayOpacity !== undefined) setOverlayOpacity(c.overlayOpacity);
+  };
+
+  const handleVibeMatch = async () => {
+    const goodLayouts: VisualizerLayout[] = ["constellation", "rings", "echo", "solidwave", "bottom", "audiogram", "dna"];
+    const randomLayout = goodLayouts[Math.floor(Math.random() * goodLayouts.length)]!;
+    const dirs = ["up", "down", "in", "out", "auto"];
+    const randomDir = dirs[Math.floor(Math.random() * dirs.length)]!;
+    const showP = Math.random() > 0.2;
+    const overlayOpts = ["none", "none", "light-leak", "scanlines"];
+    const randomOverlay = overlayOpts[Math.floor(Math.random() * overlayOpts.length)]!;
+
+    let matchedId = themes[Math.floor(Math.random() * themes.length)]!.id;
+    if (backgroundUrl && !bgIsVideo) {
+      matchedId = await matchThemeToImage(backgroundUrl);
+    }
+
+    setLayout(randomLayout);
+    setThemeId(matchedId);
+    setShowParticles(showP);
+    if (showP) {
+      setParticleDirection(randomDir);
+      setParticleSpeed(0.12 + Math.random() * 0.32);
+      setParticleCount(PARTICLE_COUNT_DEFAULTS[randomLayout] ?? 3.0);
+      setParticlePulse(Math.random() > 0.3);
+    }
+    setOverlayType(randomOverlay);
+    if (randomOverlay === "light-leak") setOverlayOpacity(0.3 + Math.random() * 0.25);
   };
 
   const [isRendering, setIsRendering] = useState(false);
@@ -501,6 +580,11 @@ export const App = () => {
                 <span className="preset-desc">{p.desc}</span>
               </button>
             ))}
+            <button className="preset-button" onClick={handleVibeMatch}>
+              <span className="preset-swatch" style={{ background: "linear-gradient(135deg, #FF2D9B, #9B2DFF, #00B4FF, #00FF88, #FFE500)" }} />
+              <span className="preset-name">Vibe Match</span>
+              <span className="preset-desc">{backgroundUrl && !bgIsVideo ? "Color-matched to image" : "Fully randomized"}</span>
+            </button>
           </div>
 
           {/* ── 2. Visual Design ─────────────────────────────────── */}
