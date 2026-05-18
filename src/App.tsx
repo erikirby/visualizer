@@ -361,6 +361,7 @@ export const App = () => {
   const [showHelp, setShowHelp] = useState(false);
   const [canExport, setCanExport] = useState<boolean | null>(null);
   const [audioReady, setAudioReady] = useState(false);
+  const [exportQuality, setExportQuality] = useState<"1080p" | "4K">("1080p");
 
 
 
@@ -452,11 +453,15 @@ export const App = () => {
     });
     setIsRendering(true);
     setRenderStatus("Rendering 0%");
+    const exportW = exportQuality === "4K" ? 3840 : 1920;
+    const exportH = exportQuality === "4K" ? 2160 : 1080;
+    const exportBitrate = exportQuality === "4K" ? 80_000_000 : 25_000_000;
+
     try {
       const { canRender, issues } = await canRenderMediaOnWeb({
         container: "mp4",
-        width: 1920,
-        height: 1080,
+        width: exportW,
+        height: exportH,
       });
       if (!canRender) {
         const msg = issues.filter(i => i.severity === "error").map(i => i.message).join("\n");
@@ -464,11 +469,11 @@ export const App = () => {
         return;
       }
 
-      // For image backgrounds: pre-crop to 1920×1080 cover so internal renderer shows no bars.
+      // For image backgrounds: pre-crop to cover dimensions so internal renderer shows no bars.
       let exportBackgroundUrl = backgroundUrl;
       if (!bgIsVideo && backgroundUrl?.startsWith("blob:")) {
         setRenderStatus("Preparing background...");
-        exportBackgroundUrl = await cropImageToCover(backgroundUrl, 1920, 1080);
+        exportBackgroundUrl = await cropImageToCover(backgroundUrl, exportW, exportH);
       }
 
       // For video backgrounds: extract frames as JPEGs first, then render internally.
@@ -489,15 +494,15 @@ export const App = () => {
         composition: {
           component: VisualizerMain,
           id: "Visualizer",
-          width: 1920,
-          height: 1080,
+          width: exportW,
+          height: exportH,
           fps: 30,
           durationInFrames,
           defaultProps: exportProps,
         },
         inputProps: exportProps,
         container: "mp4",
-        videoBitrate: 25_000_000,
+        videoBitrate: exportBitrate,
         // Internal renderer only — allowHtmlInCanvas breaks SVG/canvas capture entirely.
         // Image BGs: pre-cropped JPEG data URL via cropImageToCover (handles objectFit:cover).
         // Video BGs: pre-extracted JPEG frames via BlobVideoFrame.
@@ -877,6 +882,13 @@ export const App = () => {
 
         <div className="sidebar-footer">
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className="control-group" style={{ marginBottom: 0 }}>
+              <label>Quality</label>
+              <div className="segmented-control">
+                <button className={exportQuality === "1080p" ? "active" : ""} onClick={() => setExportQuality("1080p")}>1080p HD</button>
+                <button className={exportQuality === "4K" ? "active" : ""} onClick={() => setExportQuality("4K")}>4K UHD</button>
+              </div>
+            </div>
             <button
               className="primary-button"
               onClick={() => handleRender(false)}
