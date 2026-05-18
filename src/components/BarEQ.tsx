@@ -16,6 +16,7 @@ export interface BarEQProps {
   colorB?: string;      // treble / right-side color (default: electric blue #00B4FF)
   spectrumType?: "bass" | "wide";
   yOffset?: number;     // vertical shift in SVG units (positive = down)
+  reactivity?: number;  // 0 = smooth/default, 1 = max snap + contrast (for dance)
 }
 
 const NUM_BARS = 64;
@@ -63,6 +64,7 @@ export const BarEQ: React.FC<BarEQProps> = ({
   colorB     = "#00B4FF",
   spectrumType = "wide",
   yOffset    = 0,
+  reactivity = 0,
 }) => {
   const frame     = useCurrentFrame();
   const { fps }   = useVideoConfig();
@@ -106,6 +108,14 @@ export const BarEQ: React.FC<BarEQProps> = ({
       )
     : null;
 
+  // Raw (unsmoothed) viz for transient snap — only sampled when reactivity > 0
+  const rawViz: number[] | null = reactivity > 0
+    ? getMusicViz(
+        visualizeAudio({ fps, frame: Math.max(0, frame), audioData, numberOfSamples: 256, smoothing: false }),
+        NUM_BARS, spectrumType,
+      )
+    : null;
+
   // ── Per-bar visualization values ─────────────────────────────────────────
   const visualization = Array.from({ length: NUM_BARS }, (_, i) => {
     let raw: number;
@@ -122,7 +132,17 @@ export const BarEQ: React.FC<BarEQProps> = ({
     const normed      = (raw / peak) * 0.80;
     const rumbleNoise = rumble ? Math.sin(frame * 13.7 + i * 3.9) * 0.04 : 0;
     const ambient     = 0.015 + 0.015 * Math.sin(t * 3 + i * 0.45);
-    return Math.max(ambient, normed + rumbleNoise);
+
+    // Reactivity: transient snap + dynamic contrast expansion
+    // snap fires on beat attacks (raw FFT spikes above the smoothed signal)
+    // contrast amplifies peaks quadratically — loud gets louder, quiet stays quiet
+    const snapBoost = rawViz
+      ? Math.max(0, (rawViz[i] ?? 0) / peak - normed) * reactivity * 1.8
+      : 0;
+    const contrast  = normed + normed * normed * reactivity * 2.5;
+    const boosted   = reactivity > 0 ? Math.min(1.0, contrast + snapBoost) : normed;
+
+    return Math.max(ambient, boosted + rumbleNoise);
   });
 
   const bassEnergy = visualization.slice(0, 4).reduce((a: number, b: number) => a + b, 0) / 4;

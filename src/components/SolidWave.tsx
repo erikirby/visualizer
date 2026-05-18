@@ -16,7 +16,8 @@ export interface SolidWaveProps {
   colorA?: string;  // left / bass color  (default: #FF2D9B)
   colorB?: string;  // right / treble color (default: #00B4FF)
   spectrumType?: "bass" | "wide";
-  yOffset?: number; // vertical shift in SVG units (positive = down)
+  yOffset?: number;     // vertical shift in SVG units (positive = down)
+  reactivity?: number;  // 0 = smooth/default, 1 = max snap + contrast (for dance)
 }
 
 const NUM_BARS          = 96;   // more points = smoother curve
@@ -100,6 +101,7 @@ export const SolidWave: React.FC<SolidWaveProps> = ({
   colorB     = "#00B4FF",
   spectrumType = "wide",
   yOffset    = 0,
+  reactivity = 0,
 }) => {
   const frame     = useCurrentFrame();
   const { fps }   = useVideoConfig();
@@ -134,6 +136,14 @@ export const SolidWave: React.FC<SolidWaveProps> = ({
       )
     : null;
 
+  // Raw (unsmoothed) viz for transient snap — only sampled when reactivity > 0
+  const rawViz: number[] | null = reactivity > 0
+    ? getMusicViz(
+        visualizeAudio({ fps, frame: Math.max(0, frame), audioData, numberOfSamples: 256, smoothing: false }),
+        NUM_BARS, spectrumType,
+      )
+    : null;
+
   // ── Per-bar visualization values ─────────────────────────────────────────
   const visualization = Array.from({ length: NUM_BARS }, (_, i) => {
     let raw: number;
@@ -149,9 +159,20 @@ export const SolidWave: React.FC<SolidWaveProps> = ({
     const normed      = (raw / peak) * 0.55;
     const rumbleNoise = rumble ? Math.sin(frame * 13.7 + i * 3.9) * 0.03 : 0;
     const ambient     = 0.012 + 0.01 * Math.sin(t * 2.8 + i * 0.35);
-    // Soft saturation above 0.7 — wave curves up but never hits a hard ceiling
-    const rawVal = normed + rumbleNoise;
-    const softVal = rawVal <= 0.7 ? rawVal : 0.7 + (rawVal - 0.7) * 0.22;
+
+    // Reactivity: transient snap + dynamic contrast + open up the saturation ceiling
+    const snapBoost = rawViz
+      ? Math.max(0, (rawViz[i] ?? 0) / peak - normed) * reactivity * 1.8
+      : 0;
+    const contrast  = normed + normed * normed * reactivity * 2.5;
+    const preVal    = reactivity > 0 ? Math.min(1.0, contrast + snapBoost) : normed;
+
+    // Saturation ceiling opens as reactivity rises — full peaks allowed at max
+    const satThresh = 0.7 + reactivity * 0.3;
+    const satSlope  = 0.22 * (1 - reactivity);
+    const rawVal    = preVal + rumbleNoise;
+    const softVal   = rawVal <= satThresh ? rawVal : satThresh + (rawVal - satThresh) * satSlope;
+
     // Edge taper — wave fades to 0 at left/right margins instead of a hard vertical cut
     const edgeT    = i / (NUM_BARS - 1);
     const edgeFade = Math.min(1, edgeT * 9, (1 - edgeT) * 9);
