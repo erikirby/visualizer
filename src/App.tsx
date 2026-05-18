@@ -358,6 +358,7 @@ export const App = () => {
 
   const [isRendering, setIsRendering] = useState(false);
   const [renderStatus, setRenderStatus] = useState("Rendering");
+  const renderAbortRef = React.useRef<AbortController | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [canExport, setCanExport] = useState<boolean | null>(null);
   const [audioReady, setAudioReady] = useState(false);
@@ -453,6 +454,8 @@ export const App = () => {
     });
     setIsRendering(true);
     setRenderStatus("Rendering 0%");
+    const abortController = new AbortController();
+    renderAbortRef.current = abortController;
     const exportW = exportQuality === "4K" ? 3840 : 1920;
     const exportH = exportQuality === "4K" ? 2160 : 1080;
     const exportBitrate = exportQuality === "4K" ? 80_000_000 : 25_000_000;
@@ -503,6 +506,7 @@ export const App = () => {
         inputProps: exportProps,
         container: "mp4",
         videoBitrate: exportBitrate,
+        signal: abortController.signal,
         // Internal renderer only — allowHtmlInCanvas breaks SVG/canvas capture entirely.
         // Image BGs: pre-cropped JPEG data URL via cropImageToCover (handles objectFit:cover).
         // Video BGs: pre-extracted JPEG frames via BlobVideoFrame.
@@ -522,10 +526,13 @@ export const App = () => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err: any) {
-      console.error(err);
       if (backgroundUrl) clearVideoFrames(backgroundUrl);
-      alert(`Export failed: ${err?.message ?? "Unknown error"}`);
+      if (err?.name !== "AbortError") {
+        console.error(err);
+        alert(`Export failed: ${err?.message ?? "Unknown error"}`);
+      }
     } finally {
+      renderAbortRef.current = null;
       setIsRendering(false);
       setRenderStatus("Rendering");
     }
@@ -897,15 +904,25 @@ export const App = () => {
             >
               {isRendering ? renderStatus : canExport === false ? "Export (Chrome/Edge only)" : "Export MP4"}
             </button>
-            <button
-              className="primary-button"
-              onClick={() => handleRender(true)}
-              disabled={!audioReady || !backgroundUrl || isRendering || canExport === false}
-              title="Export first 5 seconds only — great for quickly checking your settings"
-              style={{ fontSize: 13, opacity: 0.6, padding: "10px" }}
-            >
-              5s Test Export
-            </button>
+            {isRendering ? (
+              <button
+                className="primary-button"
+                onClick={() => renderAbortRef.current?.abort()}
+                style={{ fontSize: 13, background: "rgba(255,45,155,0.15)", color: "#FF2D9B", border: "1px solid rgba(255,45,155,0.35)", padding: "10px" }}
+              >
+                Cancel
+              </button>
+            ) : (
+              <button
+                className="primary-button"
+                onClick={() => handleRender(true)}
+                disabled={!audioReady || !backgroundUrl || canExport === false}
+                title="Export first 5 seconds only — great for quickly checking your settings"
+                style={{ fontSize: 13, opacity: 0.6, padding: "10px" }}
+              >
+                5s Test Export
+              </button>
+            )}
           </div>
         </div>
       </div>
