@@ -1,7 +1,7 @@
 import React from "react";
 import { useCurrentFrame, useVideoConfig } from "remotion";
 import { useAudioData, visualizeAudio } from "@remotion/media-utils";
-import { getMusicViz } from "../utils/audioColor";
+import { getMusicViz, softCeil } from "../utils/audioColor";
 
 // Smooth filled waveform — the "Solid Flat" style.
 // Renders a smooth bezier curve filled below it (mountain/wave shape).
@@ -160,18 +160,16 @@ export const SolidWave: React.FC<SolidWaveProps> = ({
     const rumbleNoise = rumble ? Math.sin(frame * 13.7 + i * 3.9) * 0.03 : 0;
     const ambient     = 0.012 + 0.01 * Math.sin(t * 2.8 + i * 0.35);
 
-    // Reactivity: transient snap + dynamic contrast + open up the saturation ceiling
+    // Reactivity: transient snap + dynamic contrast, soft-limited ceiling
     const snapBoost = rawViz
-      ? Math.max(0, (rawViz[i] ?? 0) / peak - normed) * reactivity * 1.8
+      ? Math.max(0, (rawViz[i] ?? 0) / (peak || 0.08) * 0.55 - normed) * reactivity * 1.5
       : 0;
-    const contrast  = normed + normed * normed * reactivity * 2.5;
-    const preVal    = reactivity > 0 ? Math.min(1.0, contrast + snapBoost) : normed;
+    const contrast = normed + normed * normed * reactivity * 1.8;
+    const preVal   = reactivity > 0 ? softCeil(contrast + snapBoost) : normed;
 
-    // Saturation ceiling opens as reactivity rises — full peaks allowed at max
-    const satThresh = 0.7 + reactivity * 0.3;
-    const satSlope  = 0.22 * (1 - reactivity);
-    const rawVal    = preVal + rumbleNoise;
-    const softVal   = rawVal <= satThresh ? rawVal : satThresh + (rawVal - satThresh) * satSlope;
+    // Static soft saturation (always applied, reactivity already handled above)
+    const rawVal = preVal + rumbleNoise;
+    const softVal = rawVal <= 0.7 ? rawVal : 0.7 + (rawVal - 0.7) * 0.22;
 
     // Edge taper — wave fades to 0 at left/right margins instead of a hard vertical cut
     const edgeT    = i / (NUM_BARS - 1);

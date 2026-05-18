@@ -1,7 +1,7 @@
 import React from "react";
 import { useCurrentFrame, useVideoConfig } from "remotion";
 import { useAudioData, visualizeAudio } from "@remotion/media-utils";
-import { getFreqColor, getMusicViz } from "../utils/audioColor";
+import { getFreqColor, getMusicViz, softCeil } from "../utils/audioColor";
 
 export interface BarEQProps {
   audioSrc: string;
@@ -133,14 +133,12 @@ export const BarEQ: React.FC<BarEQProps> = ({
     const rumbleNoise = rumble ? Math.sin(frame * 13.7 + i * 3.9) * 0.04 : 0;
     const ambient     = 0.015 + 0.015 * Math.sin(t * 3 + i * 0.45);
 
-    // Reactivity: transient snap + dynamic contrast expansion
-    // snap fires on beat attacks (raw FFT spikes above the smoothed signal)
-    // contrast amplifies peaks quadratically — loud gets louder, quiet stays quiet
+    // Reactivity: transient snap + dynamic contrast, soft-limited ceiling
     const snapBoost = rawViz
-      ? Math.max(0, (rawViz[i] ?? 0) / peak - normed) * reactivity * 1.8
+      ? Math.max(0, (rawViz[i] ?? 0) / (peak || 0.08) * 0.80 - normed) * reactivity * 1.5
       : 0;
-    const contrast  = normed + normed * normed * reactivity * 2.5;
-    const boosted   = reactivity > 0 ? Math.min(1.0, contrast + snapBoost) : normed;
+    const contrast = normed + normed * normed * reactivity * 1.8;
+    const boosted  = reactivity > 0 ? softCeil(contrast + snapBoost) : normed;
 
     return Math.max(ambient, boosted + rumbleNoise);
   });

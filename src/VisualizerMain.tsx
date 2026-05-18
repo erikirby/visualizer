@@ -209,11 +209,11 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
       {showVisualizer && layout === "bottom"        && <BarEQ audioSrc={audioSrc as string} compact {...barProps} />}
       {showVisualizer && layout === "audiogram"     && <FullWidthBars audioSrc={audioSrc as string} reflection={effectiveReflection} colorA={colorA} colorB={colorB} />}
       {showVisualizer && layout === "solidwave"     && <SolidWave audioSrc={audioSrc as string} {...barProps} />}
-      {showVisualizer && layout === "rings"         && <FrequencyRings audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} spectrumType={spectrumType} />}
-      {showVisualizer && layout === "echo"          && <EchoPulse audioSrc={audioSrc as string} layers={layers} colorA={colorA} colorB={colorB} reflection={effectiveReflection} spectrumType={spectrumType} />}
-      {showVisualizer && layout === "echo-solid"    && <EchoPulse audioSrc={audioSrc as string} variant="solid" layers={layers} colorA={colorA} colorB={colorB} reflection={effectiveReflection} spectrumType={spectrumType} />}
-      {showVisualizer && layout === "dna"           && <DNAHelix audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} />}
-      {showVisualizer && layout === "constellation" && <ConstellationNet audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} seed={Math.floor((audioDuration as number) * 100)} showNames={showConstellationNames} drawSpeed={constellationDrawSpeed} spectrumType={spectrumType} />}
+      {showVisualizer && layout === "rings"         && <FrequencyRings audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} spectrumType={spectrumType} reactivity={reactivity} />}
+      {showVisualizer && layout === "echo"          && <EchoPulse audioSrc={audioSrc as string} layers={layers} colorA={colorA} colorB={colorB} reflection={effectiveReflection} spectrumType={spectrumType} reactivity={reactivity} />}
+      {showVisualizer && layout === "echo-solid"    && <EchoPulse audioSrc={audioSrc as string} variant="solid" layers={layers} colorA={colorA} colorB={colorB} reflection={effectiveReflection} spectrumType={spectrumType} reactivity={reactivity} />}
+      {showVisualizer && layout === "dna"           && <DNAHelix audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} spectrumType={spectrumType} reactivity={reactivity} />}
+      {showVisualizer && layout === "constellation" && <ConstellationNet audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} seed={Math.floor((audioDuration as number) * 100)} showNames={showConstellationNames} drawSpeed={constellationDrawSpeed} spectrumType={spectrumType} reactivity={reactivity} />}
 
       {showParticles && (
         <Particles audioSrc={audioSrc as string} direction={particleDir} reactiveSpeed={particlePulse} speedMultiplier={particleSpeed} countMultiplier={particleCount} opacityMultiplier={particleOpacity} colorA={colorA} colorB={colorB} />

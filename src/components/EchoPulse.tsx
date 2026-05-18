@@ -1,7 +1,7 @@
 import React from "react";
 import { useCurrentFrame, useVideoConfig } from "remotion";
 import { useAudioData, visualizeAudio } from "@remotion/media-utils";
-import { getFreqColor, getCycleColor, getBassEnergy, getMusicViz } from "../utils/audioColor";
+import { getFreqColor, getCycleColor, getBassEnergy, getMusicViz, applyReactivity } from "../utils/audioColor";
 
 export type EchoPulseVariant = "bars" | "solid";
 
@@ -13,6 +13,7 @@ interface EchoPulseProps {
   colorB?: string;
   reflection?: boolean;
   spectrumType?: "bass" | "wide";
+  reactivity?: number;
 }
 
 const NUM_BARS   = 80;
@@ -77,6 +78,7 @@ export const EchoPulse: React.FC<EchoPulseProps> = ({
   colorB  = "#00B4FF",
   reflection = false,
   spectrumType = "wide",
+  reactivity = 0,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -84,18 +86,26 @@ export const EchoPulse: React.FC<EchoPulseProps> = ({
 
   if (!audioData) return null;
 
-  const vizRaw = visualizeAudio({ fps, frame, audioData, numberOfSamples: 256, smoothing: true });
+  const vizSmooth = visualizeAudio({ fps, frame, audioData, numberOfSamples: 256, smoothing: true });
+  const vizRawFft = reactivity > 0 ? visualizeAudio({ fps, frame, audioData, numberOfSamples: 256, smoothing: false }) : null;
   const halfBars = Math.floor(NUM_BARS / 2);
 
   // 1. Get the base spectrum (either half or full depending on reflection)
-  const rawBars = reflection
-    ? getMusicViz(vizRaw, halfBars, spectrumType)
-    : getMusicViz(vizRaw, NUM_BARS, spectrumType);
+  const smoothBase = reflection
+    ? getMusicViz(vizSmooth, halfBars, spectrumType)
+    : getMusicViz(vizSmooth, NUM_BARS, spectrumType);
+  const rawBase = vizRawFft
+    ? (reflection ? getMusicViz(vizRawFft, halfBars, spectrumType) : getMusicViz(vizRawFft, NUM_BARS, spectrumType))
+    : null;
+  const reactiveBase = applyReactivity(smoothBase, rawBase, reactivity);
 
-  // 2. Apply mirroring if requested, otherwise use rawBars directly
+  // Keep vizRaw as alias used by bassEnergyRaw below (smoothed, unaffected by reactivity)
+  const vizRaw = vizSmooth;
+
+  // 2. Apply mirroring if requested, otherwise use reactiveBase directly
   let liveBars = reflection
-    ? [...rawBars].reverse().concat(rawBars)
-    : [...rawBars];
+    ? [...reactiveBase].reverse().concat(reactiveBase)
+    : [...reactiveBase];
 
   // 3. Seam Smoothing (Only when not mirroring)
   // Blends the high-freq end of the circle into the low-freq start to avoid sharp jumps.
@@ -120,7 +130,7 @@ export const EchoPulse: React.FC<EchoPulseProps> = ({
 
   const mainColor   = getCycleColor(frame, fps, 28, colorA, colorB);
   // Always use the start of the raw spectrum for bass energy (bass is always at index 0)
-  const bassEnergyRaw = getBassEnergy(rawBars);
+  const bassEnergyRaw = getBassEnergy(smoothBase);
   // Solid mode uses a gentler glow so the diffuse halo doesn't blow out the shape
   const glowSize    = variant === "solid"
     ? 2 + bassEnergyRaw * 5

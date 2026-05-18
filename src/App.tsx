@@ -672,12 +672,10 @@ export const App = () => {
                 </div>
               </div>
 
-              {(layout === "bottom" || layout === "solidwave") && (
-                <div className="control-group">
-                  <label>Reactivity <span className="label-value">{reactivity === 0 ? "Off" : reactivity >= 1 ? "Max" : `${Math.round(reactivity * 100)}%`}</span></label>
-                  <input type="range" className="range-input" min={0} max={1} step={0.05} value={reactivity} onChange={e => setReactivity(parseFloat(e.target.value))} />
-                </div>
-              )}
+              <div className="control-group">
+                <label>Reactivity <span className="label-value">{reactivity === 0 ? "Off" : reactivity >= 1 ? "Max" : `${Math.round(reactivity * 100)}%`}</span></label>
+                <input type="range" className="range-input" min={0} max={1} step={0.05} value={reactivity} onChange={e => setReactivity(parseFloat(e.target.value))} />
+              </div>
 
               {(layout === "bottom" || layout === "audiogram" || layout === "solidwave" || layout === "echo" || layout === "echo-solid") && (
                 <div className="toggle-group">

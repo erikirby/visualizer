@@ -1,6 +1,36 @@
 // Shared utilities for audio-reactive color and bass extraction
 import { lerpColor } from "./themes";
 
+/**
+ * Smooth asymptotic ceiling — identity below `knee`, then curves toward 1.0
+ * without ever hard-clipping. Values that would have all been clamped to 1.0
+ * remain distinguishable from each other above the knee.
+ */
+export function softCeil(x: number, knee = 0.85): number {
+  if (x <= knee) return x;
+  const over = x - knee;
+  return knee + (1 - knee) * over / (1 + over);
+}
+
+/**
+ * Reactivity boost: transient snap + dynamic contrast, then soft-limit.
+ * - snap: fires on beat attacks (raw > smooth → positive transient energy)
+ * - contrast: v + v² × amount × 1.8 → quiet stays quiet, peaks explode
+ */
+export function applyReactivity(
+  smooth: number[],
+  raw: number[] | null,
+  amount: number,
+): number[] {
+  if (amount <= 0) return smooth;
+  return smooth.map((v, i) => {
+    const rv      = raw ? (raw[i] ?? v) : v;
+    const snap    = Math.max(0, rv - v) * amount * 1.5;
+    const contrast = v + v * v * amount * 1.8;
+    return softCeil(contrast + snap);
+  });
+}
+
 // Default theme colors — kept as constants so callers don't need to import themes
 const A = "#FF2D9B";  // hot pink (colorA default)
 const B = "#00B4FF";  // electric blue (colorB default)

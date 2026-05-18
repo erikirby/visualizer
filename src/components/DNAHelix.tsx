@@ -1,7 +1,7 @@
 import React from "react";
 import { useCurrentFrame, useVideoConfig } from "remotion";
 import { useAudioData, visualizeAudio } from "@remotion/media-utils";
-import { getMusicViz, getBassEnergy } from "../utils/audioColor";
+import { getMusicViz, getBassEnergy, applyReactivity } from "../utils/audioColor";
 import { lerpColor } from "../utils/themes";
 
 interface DNAHelixProps {
@@ -9,6 +9,7 @@ interface DNAHelixProps {
   colorA?: string;
   colorB?: string;
   spectrumType?: "bass" | "wide";
+  reactivity?: number;
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -37,6 +38,7 @@ export const DNAHelix: React.FC<DNAHelixProps> = ({
   colorA = "#FF2D9B",
   colorB = "#00B4FF",
   spectrumType = "wide",
+  reactivity = 0,
 }) => {
   const frame     = useCurrentFrame();
   const { fps }   = useVideoConfig();
@@ -56,7 +58,11 @@ export const DNAHelix: React.FC<DNAHelixProps> = ({
     return (viz[0][i] + (viz[1]?.[i] ?? 0) + (viz[2]?.[i] ?? 0)) / 3;
   }) : new Array(128).fill(0);
 
-  const bars       = getMusicViz(averagedViz as any, 128, spectrumType);
+  const smoothBars = getMusicViz(averagedViz as any, 128, spectrumType);
+  const rawBarsForReact = reactivity > 0 && audioData
+    ? getMusicViz(visualizeAudio({ fps, frame, audioData, numberOfSamples: 128, smoothing: false }), 128, spectrumType)
+    : null;
+  const bars = applyReactivity(smoothBars, rawBarsForReact, reactivity);
   const bassEnergy = getBassEnergy(bars);
   const bassScale  = 1 + bassEnergy * 0.32; // restored intensity slightly now that it's smooth
   const energy     = bars.reduce((a, b) => a + (b as number), 0) / bars.length;

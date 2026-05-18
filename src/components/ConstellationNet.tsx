@@ -1,7 +1,7 @@
 import React from "react";
 import { useCurrentFrame, useVideoConfig } from "remotion";
 import { useAudioData, visualizeAudio } from "@remotion/media-utils";
-import { getMusicViz, getBassEnergy } from "../utils/audioColor";
+import { getMusicViz, getBassEnergy, applyReactivity } from "../utils/audioColor";
 import { lerpColor } from "../utils/themes";
 
 interface ConstellationNetProps {
@@ -13,6 +13,7 @@ interface ConstellationNetProps {
   showNames?: boolean;
   drawSpeed?: number;  // 0.25–4.0; 1 = default pace
   spectrumType?: "bass" | "wide";
+  reactivity?: number;
 }
 
 const W = 1920;
@@ -323,6 +324,7 @@ export const ConstellationNet: React.FC<ConstellationNetProps> = ({
   showNames = true,
   drawSpeed = 1,
   spectrumType = "wide",
+  reactivity = 0,
 }) => {
   const frame     = useCurrentFrame();
   const { fps }   = useVideoConfig();
@@ -330,9 +332,12 @@ export const ConstellationNet: React.FC<ConstellationNetProps> = ({
 
   if (!audioData) return null;
 
-  const vizRaw     = visualizeAudio({ fps, frame, audioData, numberOfSamples: 256, smoothing: true });
-  const bars       = getMusicViz(vizRaw, NUM_BARS, spectrumType);
-  const bassEnergy = getBassEnergy(bars);
+  const vizSmooth   = visualizeAudio({ fps, frame, audioData, numberOfSamples: 256, smoothing: true });
+  const vizRawFft   = reactivity > 0 ? visualizeAudio({ fps, frame, audioData, numberOfSamples: 256, smoothing: false }) : null;
+  const smoothBars  = getMusicViz(vizSmooth, NUM_BARS, spectrumType);
+  const rawBarsForR = vizRawFft ? getMusicViz(vizRawFft, NUM_BARS, spectrumType) : null;
+  const bars        = applyReactivity(smoothBars, rawBarsForR, reactivity);
+  const bassEnergy  = getBassEnergy(bars);
   const glowSize   = 2.5 + bassEnergy * 18;
 
   // Sky drift
