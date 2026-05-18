@@ -458,7 +458,7 @@ export const App = () => {
     renderAbortRef.current = abortController;
     const exportW = exportQuality === "4K" ? 3840 : 1920;
     const exportH = exportQuality === "4K" ? 2160 : 1080;
-    const exportBitrate = exportQuality === "4K" ? 80_000_000 : 25_000_000;
+    const exportBitrate = exportQuality === "4K" ? 35_000_000 : 25_000_000;
 
     try {
       const { canRender, issues } = await canRenderMediaOnWeb({
