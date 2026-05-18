@@ -16,6 +16,7 @@ export interface SolidWaveProps {
   colorA?: string;  // left / bass color  (default: #FF2D9B)
   colorB?: string;  // right / treble color (default: #00B4FF)
   spectrumType?: "bass" | "wide";
+  yOffset?: number; // vertical shift in SVG units (positive = down)
 }
 
 const NUM_BARS          = 96;   // more points = smoother curve
@@ -98,6 +99,7 @@ export const SolidWave: React.FC<SolidWaveProps> = ({
   colorA     = "#FF2D9B",
   colorB     = "#00B4FF",
   spectrumType = "wide",
+  yOffset    = 0,
 }) => {
   const frame     = useCurrentFrame();
   const { fps }   = useVideoConfig();
@@ -115,6 +117,7 @@ export const SolidWave: React.FC<SolidWaveProps> = ({
 
   const STEP    = (CANVAS_W - MARGIN * 2) / (NUM_BARS - 1);
   const xs      = Array.from({ length: NUM_BARS }, (_, i) => MARGIN + i * STEP);
+  const cy      = CENTER_Y + yOffset;
 
   // ── Audio sampling ────────────────────────────────────────────────────────
   const getViz = (f: number) =>
@@ -159,15 +162,15 @@ export const SolidWave: React.FC<SolidWaveProps> = ({
   const glowSize   = 4 + bassEnergy * 12;
 
   // ── Build SVG paths ───────────────────────────────────────────────────────
-  const ysTop     = visualization.map((v) => CENTER_Y - v * MAX_H);
-  const ysLayer   = visualization.map((v) => CENTER_Y - v * MAX_H * 0.75);
-  const ysRefl    = visualization.map((v) => CENTER_Y + v * MAX_H * 0.6);
-  const ysRLayer  = visualization.map((v) => CENTER_Y + v * MAX_H * 0.6 * 0.75);
+  const ysTop     = visualization.map((v) => cy - v * MAX_H);
+  const ysLayer   = visualization.map((v) => cy - v * MAX_H * 0.75);
+  const ysRefl    = visualization.map((v) => cy + v * MAX_H * 0.6);
+  const ysRLayer  = visualization.map((v) => cy + v * MAX_H * 0.6 * 0.75);
 
-  const pathMain   = buildSmoothPath(ysTop,    xs, CENTER_Y);
-  const pathLayer  = layers     ? buildSmoothPath(ysLayer,  xs, CENTER_Y) : "";
-  const pathRefl   = reflection ? buildSmoothPath(ysRefl,   xs, CENTER_Y) : "";
-  const pathRLayer = (reflection && layers) ? buildSmoothPath(ysRLayer, xs, CENTER_Y) : "";
+  const pathMain   = buildSmoothPath(ysTop,    xs, cy);
+  const pathLayer  = layers     ? buildSmoothPath(ysLayer,  xs, cy) : "";
+  const pathRefl   = reflection ? buildSmoothPath(ysRefl,   xs, cy) : "";
+  const pathRLayer = (reflection && layers) ? buildSmoothPath(ysRLayer, xs, cy) : "";
 
   return (
     <svg
@@ -205,7 +208,7 @@ export const SolidWave: React.FC<SolidWaveProps> = ({
 
       {/* Background vignette */}
       <ellipse
-        cx={CANVAS_W / 2} cy={CENTER_Y}
+        cx={CANVAS_W / 2} cy={cy}
         rx={CANVAS_W * 0.55} ry={MAX_H * 1.6}
         fill="url(#sw-bg)"
       />
@@ -228,8 +231,8 @@ export const SolidWave: React.FC<SolidWaveProps> = ({
 
       {/* Center line — subtle anchor */}
       <line
-        x1={MARGIN} y1={CENTER_Y}
-        x2={CANVAS_W - MARGIN} y2={CENTER_Y}
+        x1={MARGIN} y1={cy}
+        x2={CANVAS_W - MARGIN} y2={cy}
         stroke="rgba(255,255,255,0.1)" strokeWidth={1}
       />
     </svg>

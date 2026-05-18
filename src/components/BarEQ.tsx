@@ -15,6 +15,7 @@ export interface BarEQProps {
   colorA?: string;      // bass / left-side color (default: hot pink #FF2D9B)
   colorB?: string;      // treble / right-side color (default: electric blue #00B4FF)
   spectrumType?: "bass" | "wide";
+  yOffset?: number;     // vertical shift in SVG units (positive = down)
 }
 
 const NUM_BARS = 64;
@@ -61,6 +62,7 @@ export const BarEQ: React.FC<BarEQProps> = ({
   colorA     = "#FF2D9B",
   colorB     = "#00B4FF",
   spectrumType = "wide",
+  yOffset    = 0,
 }) => {
   const frame     = useCurrentFrame();
   const { fps }   = useVideoConfig();
@@ -81,9 +83,9 @@ export const BarEQ: React.FC<BarEQProps> = ({
   const START_X = (CANVAS_W - TOTAL_W) / 2;
 
   // Shift center up a bit when reflection is on so mirror bars stay on-canvas
-  const CENTER_Y = reflection
+  const CENTER_Y = (reflection
     ? (compact ? 870 : 820)
-    : (compact ? 930 : 930);
+    : (compact ? 930 : 930)) + yOffset;
 
   const t = frame / fps;
 

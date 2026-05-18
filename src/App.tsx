@@ -296,6 +296,7 @@ export const App = () => {
   const [overlayOpacity, setOverlayOpacity] = useState<number>(0.5);
   const [spectrumType, setSpectrumType] = useState<"bass" | "wide">("wide");
   const [constellationDrawSpeed, setConstellationDrawSpeed] = useState<number>(1);
+  const [vizYOffset, setVizYOffset] = useState<number>(0);
   const [fineTuneOpen, setFineTuneOpen] = useState<boolean>(false);
   
   const [audioDuration, setAudioDuration] = useState<number>(30);
@@ -555,7 +556,8 @@ export const App = () => {
     showConstellationNames,
     constellationDrawSpeed,
     showVisualizer: true,
-    spectrumType
+    spectrumType,
+    vizYOffset,
   };
 
   return (
@@ -675,6 +677,13 @@ export const App = () => {
                     <input type="checkbox" checked={reflection} onChange={e => setReflection(e.target.checked)} />
                     <span className="slider"></span>
                   </label>
+                </div>
+              )}
+
+              {(layout === "bottom" || layout === "solidwave") && (
+                <div className="control-group">
+                  <label>Y Position <span className="label-value">{vizYOffset > 0 ? `+${vizYOffset}` : vizYOffset}</span></label>
+                  <input type="range" className="range-input" min={-400} max={400} step={5} value={vizYOffset} onChange={e => setVizYOffset(Number(e.target.value))} />
                 </div>
               )}
 

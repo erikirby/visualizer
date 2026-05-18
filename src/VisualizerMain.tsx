@@ -80,6 +80,7 @@ export type VisualizerProps = {
   spectrumType?: "bass" | "wide";
   customColorA?: string;
   customColorB?: string;
+  vizYOffset?: number;
 } & Record<string, unknown>;
 
 export const VisualizerMain: React.FC<VisualizerProps> = ({
@@ -123,6 +124,7 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
   spectrumType = "wide",
   customColorA,
   customColorB,
+  vizYOffset = 0,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -164,7 +166,7 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
      layout === "rings" || layout === "constellation" ? "in" : "out");
 
   // Shared props for bar-based layouts
-  const barProps = { reflection: effectiveReflection, waveDelay, rumble, layers, colorA, colorB, spectrumType };
+  const barProps = { reflection: effectiveReflection, waveDelay, rumble, layers, colorA, colorB, spectrumType, yOffset: vizYOffset };
 
   // Beat flash uses colorA so it matches the theme (e.g. green pulse for Toxic theme)
   const flashColor = colorA;
