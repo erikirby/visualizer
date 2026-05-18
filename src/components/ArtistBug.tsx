@@ -40,7 +40,7 @@ export const ArtistBug: React.FC<ArtistBugProps> = ({
   colorB = "#00B4FF",
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, width } = useVideoConfig();
 
   // Fade in over the first second
   const opacity = interpolate(frame, [0, fps * 1.0], [0, 1], {
@@ -48,12 +48,14 @@ export const ArtistBug: React.FC<ArtistBugProps> = ({
     extrapolateRight: "clamp",
   });
 
+  // Scale all pixel values proportionally to the composition width
+  const scale        = width / 1920;
   const isSmall      = size === "small";
-  const primarySize  = isSmall ? 28 : 40;
-  const secondarySize= isSmall ? 18 : 26;
+  const primarySize  = (isSmall ? 28 : 40) * scale;
+  const secondarySize= (isSmall ? 18 : 26) * scale;
   const baseOpacity  = isSmall ? 0.70 : 1.0;
-  const left         = 72;
-  const top          = 64;
+  const left         = 72  * scale;
+  const top          = 64  * scale;
 
   const topText = reverseTitles ? trackName : artistName;
   const bottomText = reverseTitles ? artistName : trackName;
@@ -71,7 +73,7 @@ export const ArtistBug: React.FC<ArtistBugProps> = ({
           display: "flex",
           flexDirection: "column",
           alignItems: "flex-start",
-          gap: 7,
+          gap: 7 * scale,
         }}
       >
         {/* Top text (Primary) */}
@@ -84,9 +86,9 @@ export const ArtistBug: React.FC<ArtistBugProps> = ({
             letterSpacing: "0.02em",
             lineHeight: 1,
             textShadow: [
-              `0 0 16px ${colorA}CC`,
-              `0 0 36px ${colorA}59`,
-              "0 2px 4px rgba(0,0,0,0.6)",
+              `0 0 ${16 * scale}px ${colorA}CC`,
+              `0 0 ${36 * scale}px ${colorA}59`,
+              `0 ${2 * scale}px ${4 * scale}px rgba(0,0,0,0.6)`,
             ].join(", "),
           }}
         >
@@ -96,8 +98,8 @@ export const ArtistBug: React.FC<ArtistBugProps> = ({
         {/* Accent line */}
         <div
           style={{
-            width: isSmall ? 120 : 180,
-            height: isSmall ? 1.5 : 2,
+            width: (isSmall ? 120 : 180) * scale,
+            height: (isSmall ? 1.5 : 2) * scale,
             background:
               `linear-gradient(90deg, ${colorA}D9 0%, ${colorB}66 100%)`,
             borderRadius: 1,

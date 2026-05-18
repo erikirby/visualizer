@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, useCurrentFrame } from "remotion";
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type ProceduralOverlayType =
@@ -14,9 +14,6 @@ interface ProceduralOverlayProps {
   colorB?:   string;    // Theme colorB
 }
 
-const W = 1920;
-const H = 1080;
-
 export const ProceduralOverlay: React.FC<ProceduralOverlayProps> = ({
   type,
   opacity,
@@ -24,6 +21,7 @@ export const ProceduralOverlay: React.FC<ProceduralOverlayProps> = ({
   colorB = "#00B4FF",
 }) => {
   const frame = useCurrentFrame();
+  const { width: W, height: H, fps } = useVideoConfig();
 
   if (type === "none") return null;
 
@@ -58,7 +56,7 @@ export const ProceduralOverlay: React.FC<ProceduralOverlayProps> = ({
   // clips the overflow — but at the frame edge the gradient is smooth because
   // the hard SVG clip happens well outside the visible area.
   if (type === "light-leak") {
-    const t = frame / 30;
+    const t = frame / fps;
 
     const cxPct = 50 + 30 * Math.sin(t * 0.17);
     const cyPct = 42 + 26 * Math.cos(t * 0.11 + 1.2);
@@ -72,7 +70,7 @@ export const ProceduralOverlay: React.FC<ProceduralOverlayProps> = ({
 
     // Extra pixels on every side — pushes the SVG boundary far outside the
     // visible frame so the gradient's hard clip is never seen.
-    const PAD = 600;
+    const PAD = Math.round(W * 0.3125); // 600 at 1920, scales with composition
     const totalW = W + 2 * PAD;   // 3120
     const totalH = H + 2 * PAD;   // 2280
 
