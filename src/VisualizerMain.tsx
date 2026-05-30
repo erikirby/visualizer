@@ -10,6 +10,10 @@ import { EchoPulse } from "./components/EchoPulse";
 import { DNAHelix } from "./components/DNAHelix";
 import { ConstellationNet } from "./components/ConstellationNet";
 import { FullWidthBars } from "./components/FullWidthBars";
+import { FlameWave } from "./components/FlameWave";
+import { FlameEmbers } from "./components/FlameEmbers";
+import { HexScaleGrid } from "./components/HexScaleGrid";
+import { SalazzleOverlayAudio } from "./components/SalazzleOverlay";
 import { Particles } from "./components/Particles";
 import type { ParticleDirection } from "./components/Particles";
 import { getBassEnergy } from "./utils/audioColor";
@@ -29,7 +33,10 @@ export type VisualizerLayout =
   | "echo"
   | "echo-solid"
   | "dna"
-  | "constellation";
+  | "constellation"
+  | "flame"
+  | "embers"
+  | "hex";
 
 export type VisualizerProps = {
   audioSrc: string;
@@ -78,6 +85,7 @@ export type VisualizerProps = {
   constellationDrawSpeed?: number;
   isExporting?: boolean;
   spectrumType?: "bass" | "wide";
+  charSrc?: string; // optional character PNG overlay (e.g. salazzle.png)
   customColorA?: string;
   customColorB?: string;
   vizYOffset?: number;
@@ -127,6 +135,7 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
   customColorB,
   vizYOffset = 0,
   reactivity = 0,
+  charSrc,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -214,6 +223,11 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
       {showVisualizer && layout === "echo-solid"    && <EchoPulse audioSrc={audioSrc as string} variant="solid" layers={layers} colorA={colorA} colorB={colorB} reflection={effectiveReflection} spectrumType={spectrumType} reactivity={reactivity} />}
       {showVisualizer && layout === "dna"           && <DNAHelix audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} spectrumType={spectrumType} reactivity={reactivity} />}
       {showVisualizer && layout === "constellation" && <ConstellationNet audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} seed={Math.floor((audioDuration as number) * 100)} showNames={showConstellationNames} drawSpeed={constellationDrawSpeed} spectrumType={spectrumType} reactivity={reactivity} />}
+      {showVisualizer && layout === "flame"         && <FlameWave audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} spectrumType={spectrumType} reactivity={reactivity} />}
+      {showVisualizer && layout === "embers"        && <FlameEmbers audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} />}
+      {showVisualizer && layout === "hex"           && <HexScaleGrid audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} spectrumType={spectrumType} reactivity={reactivity} />}
+
+      {charSrc && <SalazzleOverlayAudio charSrc={charSrc as string} audioSrc={audioSrc as string} colorA={colorA} />}
 
       {showParticles && (
         <Particles audioSrc={audioSrc as string} direction={particleDir} reactiveSpeed={particlePulse} speedMultiplier={particleSpeed} countMultiplier={particleCount} opacityMultiplier={particleOpacity} colorA={colorA} colorB={colorB} />

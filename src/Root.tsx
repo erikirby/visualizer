@@ -291,6 +291,49 @@ export const RemotionRoot: React.FC = () => {
         defaultProps={{ audioSrc: staticFile("audio.wav"), audioDuration: FALLBACK_DURATION_S, layout: "constellation" as VisualizerLayout, backgroundSrc: staticFile("background.png"), showParticles: true }}
         calculateMetadata={async ({ props }) => buildVisualizerProps("constellation", true, props as Record<string, unknown>)}
       />
+
+      {/* ── Flame Wave ─────────────────────────────────────────────── */}
+      <Composition
+        id="FlameWave"
+        component={VisualizerMain}
+        fps={FPS} width={1920} height={1080}
+        defaultProps={{ audioSrc: staticFile("audio.wav"), audioDuration: FALLBACK_DURATION_S, layout: "flame" as VisualizerLayout, backgroundSrc: staticFile("background.png"), showParticles: false }}
+        calculateMetadata={async ({ props }) => buildVisualizerProps("flame", false, props as Record<string, unknown>)}
+      />
+
+      <Composition
+        id="FlameWaveParticles"
+        component={VisualizerMain}
+        fps={FPS} width={1920} height={1080}
+        defaultProps={{ audioSrc: staticFile("audio.wav"), audioDuration: FALLBACK_DURATION_S, layout: "flame" as VisualizerLayout, backgroundSrc: staticFile("background.png"), showParticles: true }}
+        calculateMetadata={async ({ props }) => buildVisualizerProps("flame", true, props as Record<string, unknown>)}
+      />
+
+      {/* ── Flame Embers ───────────────────────────────────────────── */}
+      <Composition
+        id="FlameEmbers"
+        component={VisualizerMain}
+        fps={FPS} width={1920} height={1080}
+        defaultProps={{ audioSrc: staticFile("audio.wav"), audioDuration: FALLBACK_DURATION_S, layout: "embers" as VisualizerLayout, backgroundSrc: staticFile("background.png"), showParticles: false }}
+        calculateMetadata={async ({ props }) => buildVisualizerProps("embers", false, props as Record<string, unknown>)}
+      />
+
+      {/* ── Hex Scale Grid ─────────────────────────────────────────── */}
+      <Composition
+        id="HexScaleGrid"
+        component={VisualizerMain}
+        fps={FPS} width={1920} height={1080}
+        defaultProps={{ audioSrc: staticFile("audio.wav"), audioDuration: FALLBACK_DURATION_S, layout: "hex" as VisualizerLayout, backgroundSrc: staticFile("background.png"), showParticles: false }}
+        calculateMetadata={async ({ props }) => buildVisualizerProps("hex", false, props as Record<string, unknown>)}
+      />
+
+      <Composition
+        id="HexScaleGridParticles"
+        component={VisualizerMain}
+        fps={FPS} width={1920} height={1080}
+        defaultProps={{ audioSrc: staticFile("audio.wav"), audioDuration: FALLBACK_DURATION_S, layout: "hex" as VisualizerLayout, backgroundSrc: staticFile("background.png"), showParticles: true }}
+        calculateMetadata={async ({ props }) => buildVisualizerProps("hex", true, props as Record<string, unknown>)}
+      />
     </>
   );
 };
