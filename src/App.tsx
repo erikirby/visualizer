@@ -291,7 +291,7 @@ export const App = () => {
   const [reverseTitles, setReverseTitles] = useState<boolean>(false);
   const [fontFamily, setFontFamily] = useState<string>("Inter");
   const [showLyrics, setShowLyrics] = useState<boolean>(false);
-  const [pulseMovement, setPulseMovement] = useState<boolean>(true);
+  const [movementIntensity, setMovementIntensity] = useState<number>(1);
   const [pulseFlash, setPulseFlash] = useState<boolean>(true);
   const [particlePulse, setParticlePulse] = useState<boolean>(true);
   const [showConstellationNames, setShowConstellationNames] = useState<boolean>(true);
@@ -567,7 +567,7 @@ export const App = () => {
     fontFamily,
     lines,
     showLyrics,
-    pulseMovement,
+    movementIntensity,
     pulseFlash,
     showConstellationNames,
     constellationDrawSpeed,
@@ -709,12 +709,9 @@ export const App = () => {
                 </div>
               )}
 
-              <div className="toggle-group">
-                <label>Beat Zoom</label>
-                <label className="switch">
-                  <input type="checkbox" checked={pulseMovement} onChange={e => setPulseMovement(e.target.checked)} />
-                  <span className="slider"></span>
-                </label>
+              <div className="control-group">
+                <label>Zoom Intensity <span className="label-value">{movementIntensity === 0 ? 'Off' : movementIntensity.toFixed(1) + 'x'}</span></label>
+                <input type="range" className="range-input" min={0} max={3} step={0.1} value={movementIntensity} onChange={e => setMovementIntensity(parseFloat(e.target.value))} />
               </div>
 
               <div className="toggle-group">

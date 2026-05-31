@@ -79,6 +79,7 @@ export type VisualizerProps = {
   showLyrics?: boolean;
   showVisualizer?: boolean;
   pulseMovement?: boolean;
+  movementIntensity?: number; // 0 = no movement, 1 = default, 2 = max. Replaces pulseMovement when set.
   pulseFlash?: boolean;
   particlePulse?: boolean;
   showConstellationNames?: boolean;
@@ -125,6 +126,7 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
   showLyrics = true,
   showVisualizer = true,
   pulseMovement = true,
+  movementIntensity,
   pulseFlash = true,
   particlePulse = true,
   showConstellationNames = true,
@@ -165,7 +167,7 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
     const kickTransient = Math.max(0, rawBass - smoothBass - 0.10) * 3;
 
     return {
-      bassScale: 1 + smoothBass * 0.035, // reduced from 0.06
+      bassScale: 1 + smoothBass * 0.035 * (movementIntensity ?? 1),
       beatFlash: Math.min(1, kickTransient),
     };
   }, [audioData, frame, fps]);
@@ -186,7 +188,7 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
     <AbsoluteFill style={{ background: "#080818" }}>
       <Audio src={audioSrc as string} />
       <VisualBackground
-        bassScale={pulseMovement ? bassScale : 1}
+        bassScale={movementIntensity !== undefined ? (movementIntensity === 0 ? 1 : bassScale) : (pulseMovement ? bassScale : 1)}
         backgroundSrc={backgroundSrc as string}
         bgIsVideo={bgIsVideo}
         bgLoopType={bgLoopType}
