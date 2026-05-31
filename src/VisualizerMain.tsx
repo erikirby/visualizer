@@ -189,6 +189,7 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
       <Audio src={audioSrc as string} />
       <VisualBackground
         bassScale={movementIntensity !== undefined ? (movementIntensity === 0 ? 1 : bassScale) : (pulseMovement ? bassScale : 1)}
+        movementIntensity={movementIntensity}
         backgroundSrc={backgroundSrc as string}
         bgIsVideo={bgIsVideo}
         bgLoopType={bgLoopType}

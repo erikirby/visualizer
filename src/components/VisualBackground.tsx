@@ -13,6 +13,7 @@ import { getVideoFrame } from "../utils/videoFrameExtractor";
 
 interface VisualBackgroundProps {
   bassScale?: number;
+  movementIntensity?: number; // when > 0, applies Ken Burns + sway to video too
   backgroundSrc?: string;
   bgIsVideo?: boolean;
   bgLoopType?:              "standard" | "pingpong";
@@ -71,6 +72,7 @@ const BlobVideoFrame: React.FC<{ src: string; durationInFrames: number }> = ({ s
 
 export const VisualBackground: React.FC<VisualBackgroundProps> = ({
   bassScale = 1,
+  movementIntensity,
   backgroundSrc,
   bgIsVideo,
   bgLoopType,
@@ -89,9 +91,12 @@ export const VisualBackground: React.FC<VisualBackgroundProps> = ({
 
   const ZOOM_CYCLE  = 40;
   const DRIFT_CYCLE = 55;
-  const kenBurnsScale = isVideo ? 1 : 1.15 + 0.10 * Math.sin((t / ZOOM_CYCLE) * Math.PI * 2);
-  const translateX    = isVideo ? 0 : 2.8  * Math.sin((t / DRIFT_CYCLE) * Math.PI * 2);
-  const translateY    = isVideo ? 0 : 1.4  * Math.cos((t / DRIFT_CYCLE) * Math.PI * 2 + 1.2);
+  // Apply Ken Burns to images always; apply to video when movementIntensity > 0
+  const applyKenBurns = !isVideo || (movementIntensity !== undefined && movementIntensity > 0);
+  const kbStrength    = applyKenBurns ? (movementIntensity ?? 1) : 0;
+  const kenBurnsScale = applyKenBurns ? 1 + (0.15 + 0.10 * Math.sin((t / ZOOM_CYCLE) * Math.PI * 2)) * kbStrength : 1;
+  const translateX    = applyKenBurns ? 2.8 * Math.sin((t / DRIFT_CYCLE) * Math.PI * 2) * kbStrength : 0;
+  const translateY    = applyKenBurns ? 1.4 * Math.cos((t / DRIFT_CYCLE) * Math.PI * 2 + 1.2) * kbStrength : 0;
   const transform = `scale(${kenBurnsScale * bassScale}) translate(${translateX}%, ${translateY}%)`;
 
   const buildVideoNode = (): React.ReactNode => {
