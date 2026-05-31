@@ -10,9 +10,9 @@ import { EchoPulse } from "./components/EchoPulse";
 import { DNAHelix } from "./components/DNAHelix";
 import { ConstellationNet } from "./components/ConstellationNet";
 import { FullWidthBars } from "./components/FullWidthBars";
-import { FlameWave } from "./components/FlameWave";
-import { FlameEmbers } from "./components/FlameEmbers";
 import { HexScaleGrid } from "./components/HexScaleGrid";
+import { AuroraWave } from "./components/AuroraWave";
+import { StarburstViz } from "./components/StarburstViz";
 import { SalazzleOverlayAudio } from "./components/SalazzleOverlay";
 import { Particles } from "./components/Particles";
 import type { ParticleDirection } from "./components/Particles";
@@ -34,9 +34,9 @@ export type VisualizerLayout =
   | "echo-solid"
   | "dna"
   | "constellation"
-  | "flame"
-  | "embers"
-  | "hex";
+  | "hex"
+  | "aurora"
+  | "starburst";
 
 export type VisualizerProps = {
   audioSrc: string;
@@ -223,9 +223,9 @@ export const VisualizerMain: React.FC<VisualizerProps> = ({
       {showVisualizer && layout === "echo-solid"    && <EchoPulse audioSrc={audioSrc as string} variant="solid" layers={layers} colorA={colorA} colorB={colorB} reflection={effectiveReflection} spectrumType={spectrumType} reactivity={reactivity} />}
       {showVisualizer && layout === "dna"           && <DNAHelix audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} spectrumType={spectrumType} reactivity={reactivity} />}
       {showVisualizer && layout === "constellation" && <ConstellationNet audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} seed={Math.floor((audioDuration as number) * 100)} showNames={showConstellationNames} drawSpeed={constellationDrawSpeed} spectrumType={spectrumType} reactivity={reactivity} />}
-      {showVisualizer && layout === "flame"         && <FlameWave audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} spectrumType={spectrumType} reactivity={reactivity} />}
-      {showVisualizer && layout === "embers"        && <FlameEmbers audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} />}
       {showVisualizer && layout === "hex"           && <HexScaleGrid audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} spectrumType={spectrumType} reactivity={reactivity} />}
+      {showVisualizer && layout === "aurora"        && <AuroraWave audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} spectrumType={spectrumType} />}
+      {showVisualizer && layout === "starburst"     && <StarburstViz audioSrc={audioSrc as string} colorA={colorA} colorB={colorB} spectrumType={spectrumType} />}
 
       {charSrc && <SalazzleOverlayAudio charSrc={charSrc as string} audioSrc={audioSrc as string} colorA={colorA} />}
 

@@ -292,30 +292,38 @@ export const RemotionRoot: React.FC = () => {
         calculateMetadata={async ({ props }) => buildVisualizerProps("constellation", true, props as Record<string, unknown>)}
       />
 
-      {/* ── Flame Wave ─────────────────────────────────────────────── */}
+      {/* ── Aurora Wave ────────────────────────────────────────────── */}
       <Composition
-        id="FlameWave"
+        id="AuroraWave"
         component={VisualizerMain}
         fps={FPS} width={1920} height={1080}
-        defaultProps={{ audioSrc: staticFile("audio.wav"), audioDuration: FALLBACK_DURATION_S, layout: "flame" as VisualizerLayout, backgroundSrc: staticFile("background.png"), showParticles: false }}
-        calculateMetadata={async ({ props }) => buildVisualizerProps("flame", false, props as Record<string, unknown>)}
+        defaultProps={{ audioSrc: staticFile("audio.wav"), audioDuration: FALLBACK_DURATION_S, layout: "aurora" as VisualizerLayout, backgroundSrc: staticFile("background.png"), showParticles: false }}
+        calculateMetadata={async ({ props }) => buildVisualizerProps("aurora", false, props as Record<string, unknown>)}
       />
 
       <Composition
-        id="FlameWaveParticles"
+        id="AuroraWaveParticles"
         component={VisualizerMain}
         fps={FPS} width={1920} height={1080}
-        defaultProps={{ audioSrc: staticFile("audio.wav"), audioDuration: FALLBACK_DURATION_S, layout: "flame" as VisualizerLayout, backgroundSrc: staticFile("background.png"), showParticles: true }}
-        calculateMetadata={async ({ props }) => buildVisualizerProps("flame", true, props as Record<string, unknown>)}
+        defaultProps={{ audioSrc: staticFile("audio.wav"), audioDuration: FALLBACK_DURATION_S, layout: "aurora" as VisualizerLayout, backgroundSrc: staticFile("background.png"), showParticles: true }}
+        calculateMetadata={async ({ props }) => buildVisualizerProps("aurora", true, props as Record<string, unknown>)}
       />
 
-      {/* ── Flame Embers ───────────────────────────────────────────── */}
+      {/* ── Starburst ──────────────────────────────────────────────── */}
       <Composition
-        id="FlameEmbers"
+        id="StarburstViz"
         component={VisualizerMain}
         fps={FPS} width={1920} height={1080}
-        defaultProps={{ audioSrc: staticFile("audio.wav"), audioDuration: FALLBACK_DURATION_S, layout: "embers" as VisualizerLayout, backgroundSrc: staticFile("background.png"), showParticles: false }}
-        calculateMetadata={async ({ props }) => buildVisualizerProps("embers", false, props as Record<string, unknown>)}
+        defaultProps={{ audioSrc: staticFile("audio.wav"), audioDuration: FALLBACK_DURATION_S, layout: "starburst" as VisualizerLayout, backgroundSrc: staticFile("background.png"), showParticles: false }}
+        calculateMetadata={async ({ props }) => buildVisualizerProps("starburst", false, props as Record<string, unknown>)}
+      />
+
+      <Composition
+        id="StarburstVizParticles"
+        component={VisualizerMain}
+        fps={FPS} width={1920} height={1080}
+        defaultProps={{ audioSrc: staticFile("audio.wav"), audioDuration: FALLBACK_DURATION_S, layout: "starburst" as VisualizerLayout, backgroundSrc: staticFile("background.png"), showParticles: true }}
+        calculateMetadata={async ({ props }) => buildVisualizerProps("starburst", true, props as Record<string, unknown>)}
       />
 
       {/* ── Hex Scale Grid ─────────────────────────────────────────── */}

@@ -1,7 +1,7 @@
 import React from "react";
 import { useCurrentFrame, useVideoConfig } from "remotion";
 import { useAudioData, visualizeAudio } from "@remotion/media-utils";
-import { getMusicViz } from "../utils/audioColor";
+import { getMusicViz, getBassEnergy } from "../utils/audioColor";
 import { lerpColor } from "../utils/themes";
 
 // Hexagonal frequency grid — each hex maps to a frequency band by distance from center.
@@ -52,6 +52,13 @@ export const HexScaleGrid: React.FC<HexScaleGridProps> = ({
     NUM_FREQ_BINS,
     spectrumType,
   );
+  const vizRaw = getMusicViz(
+    visualizeAudio({ fps, frame, audioData, numberOfSamples: 256, smoothing: false }),
+    NUM_FREQ_BINS,
+    spectrumType,
+  );
+  const vizSmooth32 = visualizeAudio({ fps, frame, audioData, numberOfSamples: 32, smoothing: true });
+  const bassEnergy = getBassEnergy(vizSmooth32);
 
   const cx = CANVAS_W / 2;
   const cy = CANVAS_H / 2;
@@ -79,25 +86,35 @@ export const HexScaleGrid: React.FC<HexScaleGridProps> = ({
 
       const binIdx = Math.floor(distT * (NUM_FREQ_BINS - 1));
       const amp = viz[binIdx] ?? 0;
+      const rawAmp = vizRaw[binIdx] ?? 0;
 
-      // Scale hex slightly with amplitude
-      const scale = 0.92 + amp * 0.35;
+      // Snap: transient energy on top of smooth
+      const snap = Math.max(0, rawAmp - amp) * 1.8;
+      const totalAmp = Math.min(1, amp + snap);
+
+      // Aggressive scale — really punches on beats
+      const scale = 0.82 + totalAmp * 0.65;
 
       // Color: center = colorA, edges = colorB
       const color = lerpColor(colorA, colorB, distT);
 
-      // Brightness: ambient floor + amp boost
-      const fillOpacity = 0.04 + amp * 0.55;
-      const strokeOpacity = 0.12 + amp * 0.55;
+      // Much higher opacity range so hexes visibly flash
+      const fillOpacity = 0.02 + totalAmp * 0.92;
+      const strokeOpacity = 0.08 + totalAmp * 0.92;
 
       hexes.push(
         <g key={`${row}-${col}`} transform={`translate(${hx.toFixed(1)},${hy.toFixed(1)}) scale(${scale.toFixed(3)})`}>
           <path d={INNER_PATH} fill={color} fillOpacity={fillOpacity.toFixed(3)} />
-          <path d={OUTER_PATH} fill="none" stroke={color} strokeWidth="1.5" strokeOpacity={strokeOpacity.toFixed(3)} />
+          <path d={OUTER_PATH} fill="none" stroke={color} strokeWidth="2" strokeOpacity={strokeOpacity.toFixed(3)} />
         </g>,
       );
     }
   }
+
+  // Beat flash — center hexes erupt on kick
+  const kickTransient = Math.max(0, getBassEnergy(
+    visualizeAudio({ fps, frame, audioData, numberOfSamples: 32, smoothing: false })
+  ) - bassEnergy - 0.08) * 4;
 
   return (
     <svg
@@ -106,14 +123,23 @@ export const HexScaleGrid: React.FC<HexScaleGridProps> = ({
     >
       <defs>
         <filter id="hex-glow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feGaussianBlur stdDeviation="5" result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
+        <radialGradient id="hex-beat" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor={colorA} stopOpacity={(kickTransient * 0.55).toFixed(3)} />
+          <stop offset="60%" stopColor={colorA} stopOpacity={(kickTransient * 0.15).toFixed(3)} />
+          <stop offset="100%" stopColor={colorA} stopOpacity="0" />
+        </radialGradient>
       </defs>
       <g filter="url(#hex-glow)">{hexes}</g>
+      {/* Beat flash radial burst from center */}
+      {kickTransient > 0.05 && (
+        <ellipse cx={cx} cy={cy} rx={600} ry={400} fill="url(#hex-beat)" style={{ mixBlendMode: "screen" }} />
+      )}
     </svg>
   );
 };
