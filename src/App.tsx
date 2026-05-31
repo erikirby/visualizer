@@ -141,6 +141,9 @@ const layouts = [
   { id: "echo-solid", name: "Circle (Solid)" },
   { id: "dna", name: "DNA Helix" },
   { id: "constellation", name: "Constellation Net" },
+  { id: "flame", name: "Flame Wave" },
+  { id: "embers", name: "Flame Embers" },
+  { id: "hex", name: "Hex Scale Grid" },
 ];
 
 const themes = [
@@ -272,7 +275,7 @@ export const App = () => {
   const PARTICLE_COUNT_DEFAULTS: Partial<Record<VisualizerLayout, number>> = {
     bottom: 4.0, audiogram: 4.0, solidwave: 4.0,
     rings: 3.0, echo: 5.0, "echo-solid": 5.0,
-    dna: 3.0, constellation: 4.0,
+    dna: 3.0, constellation: 4.0, flame: 4.0, embers: 3.0, hex: 3.0,
   };
   const handleToggleParticles = (on: boolean) => {
     setShowParticles(on);
