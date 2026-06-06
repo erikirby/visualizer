@@ -3,8 +3,8 @@ const store = new Map<string, string[]>();
 // Max canvas dimensions for frame extraction.
 // Full-res (1080p/4K) is wasteful — 1280×720 is plenty for a background
 // that gets scaled to fill and compressed anyway. Cuts memory ~60-75%.
-const MAX_EXTRACT_W = 1280;
-const MAX_EXTRACT_H = 720;
+const MAX_EXTRACT_W = 1920;
+const MAX_EXTRACT_H = 1080;
 
 // Yield to the event loop so React can keep rendering during extraction.
 const yieldFrame = () => new Promise<void>((r) => setTimeout(r, 0));
@@ -60,7 +60,7 @@ export async function extractVideoFrames(
       });
 
       ctx.drawImage(video, 0, 0, canvasW, canvasH);
-      frames.push(canvas.toDataURL("image/jpeg", 0.72));
+      frames.push(canvas.toDataURL("image/jpeg", 0.92));
       onProgress?.((i + 1) / frameCount);
 
       // Yield every 4 frames so the browser can handle React renders,
