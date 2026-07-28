@@ -278,7 +278,7 @@ export const App = () => {
   const [fxGradeSaturation, setFxGradeSaturation] = useState<number>(1);
   const [fxGradeContrast, setFxGradeContrast] = useState<number>(1);
 
-  const [fxPulseIntensity, setFxPulseIntensity] = useState<number>(0.6);
+  const [fxPulseIntensity, setFxPulseIntensity] = useState<number>(1);
   const [fxPulseFlash, setFxPulseFlash] = useState<boolean>(false);
   const [fxPulseFlashIntensity, setFxPulseFlashIntensity] = useState<number>(0.5);
   const [fxPulseLead, setFxPulseLead] = useState<number>(2);

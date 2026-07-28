@@ -22,6 +22,7 @@ const VIDEO_FILL: React.CSSProperties = {
   objectFit: "cover",
 };
 
+
 export interface EffectsPassProps {
   videoSrc?: string;
 
@@ -99,13 +100,13 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
   const audioData = useAudioData(videoSrc);
 
   // ── Beat analysis ──────────────────────────────────────────────────────────
-  // Sampled `pulseLeadFrames` ahead so the motion starts just before the
-  // transient and peaks on it. Reading at the exact beat frame is what makes a
-  // pulse feel late — the eye catches the rise, not the onset.
+  // Same split the visualizer settled on in 5345fdc1: the 128-sample smoothed
+  // read drives MOVEMENT (it averages out jitter), and the raw transient drives
+  // the FLASH only. Putting the transient into the geometry makes the scale
+  // spike for a single frame and snap back, which reads as a stutter, not a
+  // pulse. Sampled `pulseLeadFrames` ahead so the rise leads the beat.
   const { pump, kick } = React.useMemo(() => {
-    if (!audioData || (pulseIntensity <= 0 && !showParticles)) {
-      return { pump: 0, kick: 0 };
-    }
+    if (!audioData) return { pump: 0, kick: 0 };
     const readFrame = frame + pulseLeadFrames;
     const vizRaw = visualizeAudio({
       fps, frame: readFrame, audioData, numberOfSamples: 32, smoothing: false,
@@ -117,12 +118,9 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
     const smoothBass = getBassEnergy(vizSmooth);
     return {
       pump: smoothBass,
-      // Lower threshold than the visualizer's (0.10) — that one is tuned for a
-      // full-screen flash, where false positives are glaring. Here the punch is
-      // geometric, so it can afford to be more sensitive and actually fire.
-      kick: Math.min(1, Math.max(0, rawBass - smoothBass - 0.04) * 4),
+      kick: Math.min(1, Math.max(0, rawBass - smoothBass - 0.10) * 3),
     };
-  }, [audioData, frame, fps, pulseLeadFrames, pulseIntensity, showParticles]);
+  }, [audioData, frame, fps, pulseLeadFrames]);
 
   if (bypass) {
     return (
@@ -132,10 +130,9 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
     );
   }
 
-  // Weighted heavily toward the kick so this reads as a punch on the beat
-  // rather than a slow swell. Scale-only, so nothing flickers unless the flash
-  // is explicitly enabled.
-  const pulseScale = 1 + (pump * 0.015 + kick * 0.12) * pulseIntensity;
+  // Movement is driven by the smoothed read ONLY — no transient term. The
+  // visualizer's 0.035 coefficient is the ceiling at full intensity.
+  const pulseScale = 1 + pump * 0.035 * pulseIntensity;
 
   const t = frame / fps;
 
@@ -145,7 +142,9 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
   const leakEnv = leakGaps
     ? Math.pow(Math.max(0, 0.5 + 0.5 * Math.sin((2 * Math.PI * t) / 9 - 1.2)), 1.5)
     : 1;
-  const leakAlpha = leakIntensity * leakEnv * (0.75 + 0.25 * kick);
+  // Breathes with the smoothed read, not the transient — a per-frame transient
+  // here would make the leak's opacity flicker.
+  const leakAlpha = leakIntensity * leakEnv * (0.75 + 0.25 * pump);
   const leakR = Math.min(W, H) * leakSize;
   const leakCx = W * (0.78 + 0.42 * Math.sin((2 * Math.PI * t) / 11 + 0.4));
   const leakCy = H * (0.05 + 0.12 * Math.cos((2 * Math.PI * t) / 14));
