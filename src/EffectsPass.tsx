@@ -1,8 +1,7 @@
 import React from "react";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
-import { Audio } from "@remotion/media";
+import { Video } from "@remotion/media";
 import { useAudioData, visualizeAudio } from "@remotion/media-utils";
-import { VisualBackground } from "./components/VisualBackground";
 import { Particles } from "./components/Particles";
 import type { ParticleDirection } from "./components/Particles";
 import { getBassEnergy } from "./utils/audioColor";
@@ -17,10 +16,14 @@ import { getBassEnergy } from "./utils/audioColor";
  * Distinct from VisualizerMain, which builds a video from separate audio +
  * background and owns the visualizer layers.
  */
+const VIDEO_FILL: React.CSSProperties = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+};
+
 export interface EffectsPassProps {
   videoSrc?: string;
-  videoDurationInFrames?: number;
-  isExporting?: boolean;
 
   /** A/B compare — renders the untouched source so you can judge subtlety. */
   bypass?: boolean;
@@ -62,8 +65,6 @@ export interface EffectsPassProps {
 
 export const EffectsPass: React.FC<EffectsPassProps> = ({
   videoSrc = "",
-  videoDurationInFrames,
-  isExporting = false,
   bypass = false,
 
   gradeStrength = 0,
@@ -126,14 +127,7 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
   if (bypass) {
     return (
       <AbsoluteFill style={{ background: "#000" }}>
-        <VisualBackground
-          backgroundSrc={videoSrc}
-          bgIsVideo
-          movementIntensity={0}
-          bgVideoDurationInFrames={videoDurationInFrames}
-          isExporting={isExporting}
-        />
-        <Audio src={videoSrc} />
+        <Video src={videoSrc} style={VIDEO_FILL} />
       </AbsoluteFill>
     );
   }
@@ -164,20 +158,16 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
           affect the footage only, not the overlays stacked above it. */}
       <AbsoluteFill
         style={{
+          overflow: "hidden",
           filter:
             gradeSaturation !== 1 || gradeContrast !== 1
               ? `saturate(${gradeSaturation}) contrast(${gradeContrast})`
               : undefined,
         }}
       >
-        <VisualBackground
-          backgroundSrc={videoSrc}
-          bgIsVideo
-          movementIntensity={0}
-          bassScale={pulseScale}
-          bgVideoDurationInFrames={videoDurationInFrames}
-          isExporting={isExporting}
-        />
+        <AbsoluteFill style={{ transform: `scale(${pulseScale})`, transformOrigin: "center center" }}>
+          <Video src={videoSrc} style={VIDEO_FILL} />
+        </AbsoluteFill>
       </AbsoluteFill>
 
       {/* Unifying tint — soft-light keeps highlights and shadows intact while
@@ -289,8 +279,6 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
           }}
         />
       )}
-
-      <Audio src={videoSrc} />
     </AbsoluteFill>
   );
 };

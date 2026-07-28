@@ -600,9 +600,9 @@ export const App = () => {
   };
 
   // Renders at the source clip's own dimensions so nothing is letterboxed or
-  // cropped. Blob videos can't go through OffthreadVideo, so frames are
-  // pre-extracted to JPEGs first — same path the visualizer uses for video
-  // backgrounds. allowHtmlInCanvas stays off; it breaks this capture entirely.
+  // cropped. Uses @remotion/media's Video, which decodes the blob on demand —
+  // pre-extracting every frame blew past the delayRender timeout at full 9:16
+  // resolution. allowHtmlInCanvas stays off; it breaks this capture entirely.
   const handleRenderEffects = async (testMode = false) => {
     if (!fxVideoUrl) return;
     const fullFrames = Math.ceil(fxDuration * 30);
@@ -625,18 +625,7 @@ export const App = () => {
         return;
       }
 
-      setRenderStatus("Extracting video frames 0%");
-      await extractVideoFrames(
-        fxVideoUrl,
-        30,
-        durationInFrames / 30,
-        (pct) => setRenderStatus(`Extracting video frames ${Math.round(pct * 100)}%`),
-        fxWidth,
-        fxHeight,
-      );
-      setRenderStatus("Rendering 0%");
-
-      const exportProps = { ...fxProps, isExporting: true };
+      const exportProps = { ...fxProps };
       const result = await renderMediaOnWeb({
         composition: {
           component: EffectsPass,
@@ -654,7 +643,6 @@ export const App = () => {
         onProgress: ({ progress }) => setRenderStatus(`Rendering ${Math.round(progress * 100)}%`),
       });
 
-      clearVideoFrames(fxVideoUrl);
       const blob = await result.getBlob();
       track('effects_export_completed', { test_mode: testMode });
       const url = URL.createObjectURL(blob);
@@ -667,7 +655,6 @@ export const App = () => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err: any) {
-      clearVideoFrames(fxVideoUrl);
       if (err?.name !== "AbortError") {
         console.error(err);
         alert(`Export failed: ${err?.message ?? "Unknown error"}`);
