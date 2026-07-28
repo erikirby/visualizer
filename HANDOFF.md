@@ -1,4 +1,4 @@
-# AELOW Lyric Video Engine — Agent Handoff Document
+# AELOW Visualizer Engine — Agent Handoff Document
 
 Use this file to brief any AI agent (Claude, Antigravity, etc.) on the full project context
 before starting work. Keep it updated when major architecture changes are made.
@@ -7,9 +7,10 @@ before starting work. Keep it updated when major architecture changes are made.
 
 ## What This Project Is
 
-A **Remotion v4** video rendering engine that generates music visualizer and lyric videos for
-**AELOW** (Erik Henry's AI music artist project). Users run `bash render.sh` from Terminal,
-pick a song and style, and get a rendered `.mp4` in `out/`.
+A **Remotion v4** video rendering engine that generates music visualizer videos for
+**AELOW** (Erik Henry's AI music artist project). Lyrics are an optional overlay mode, not
+the primary use case. Users run `bash render.sh` from Terminal, pick a song and style, and
+get a rendered `.mp4` in `out/`.
 
 **Tech stack:** TypeScript · React · Remotion v4 · `@remotion/media-utils` · `@remotion/google-fonts`
 
@@ -18,7 +19,7 @@ pick a song and style, and get a rendered `.mp4` in `out/`.
 ## File Structure
 
 ```
-lyric-video-engine/
+aelow-visualizer-engine/
 ├── render.sh                  ← User-facing CLI. All rendering goes through here.
 ├── src/
 │   ├── index.ts               ← Remotion entry point

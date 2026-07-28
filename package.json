@@ -1,7 +1,7 @@
 {
-  "name": "aelow-lyric-video-engine",
+  "name": "aelow-visualizer-engine",
   "version": "1.0.0",
-  "description": "AELOW lyric video engine — drop audio.mp3, lyrics.lrc, background.png into assets/ then run render.sh",
+  "description": "AELOW visualizer engine — drop audio.mp3, background.png (lyrics optional) into assets/ then run render.sh",
   "scripts": {
     "start": "npx remotion studio src/index.ts",
     "render": "bash render.sh",
