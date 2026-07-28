@@ -4,6 +4,7 @@ import { renderMediaOnWeb, canRenderMediaOnWeb } from "@remotion/web-renderer";
 import { Upload, FileAudio, FileImage, FileText, Download, Loader2, ChevronDown, ChevronUp, Zap, Palette, Mic2, SlidersHorizontal } from "lucide-react";
 import { RemotionRoot } from "./Root";
 import { VisualizerMain, VisualizerProps, VisualizerLayout } from "./VisualizerMain";
+import { EffectsPass } from "./EffectsPass";
 import { Main } from "./Main";
 import { forceAlign, AlignWord } from './utils/aligner';
 import { extractVideoFrames, clearVideoFrames } from './utils/videoFrameExtractor';
@@ -260,6 +261,41 @@ export const App = () => {
     return () => worker.current?.terminate();
   }, []);
 
+  // ── Effects Pass mode ──────────────────────────────────────────────────────
+  // Takes one finished video with audio already baked in (e.g. a CapCut export)
+  // and applies a subtle polish pass. Separate from the visualizer flow, which
+  // builds a video from separate audio + background.
+  const [appMode, setAppMode] = useState<"visualizer" | "effects">("visualizer");
+  const [fxVideoUrl, setFxVideoUrl] = useState<string | null>(null);
+  const [fxVideoName, setFxVideoName] = useState<string>("");
+  const [fxDuration, setFxDuration] = useState<number>(0);
+  const [fxWidth, setFxWidth] = useState<number>(1080);
+  const [fxHeight, setFxHeight] = useState<number>(1920);
+  const [fxBypass, setFxBypass] = useState<boolean>(false);
+
+  const [fxGradeStrength, setFxGradeStrength] = useState<number>(0.12);
+  const [fxGradeTint, setFxGradeTint] = useState<string>("#FF2D9B");
+  const [fxGradeSaturation, setFxGradeSaturation] = useState<number>(1);
+  const [fxGradeContrast, setFxGradeContrast] = useState<number>(1);
+
+  const [fxPulseIntensity, setFxPulseIntensity] = useState<number>(0.6);
+  const [fxPulseFlash, setFxPulseFlash] = useState<boolean>(false);
+  const [fxPulseFlashIntensity, setFxPulseFlashIntensity] = useState<number>(0.5);
+  const [fxPulseLead, setFxPulseLead] = useState<number>(2);
+
+  const [fxLeakIntensity, setFxLeakIntensity] = useState<number>(0.5);
+  const [fxLeakSize, setFxLeakSize] = useState<number>(0.32);
+  const [fxLeakColor, setFxLeakColor] = useState<string>("#FF2D9B");
+  const [fxLeakGaps, setFxLeakGaps] = useState<boolean>(true);
+
+  const [fxGrain, setFxGrain] = useState<number>(0.12);
+  const [fxVignette, setFxVignette] = useState<number>(0.15);
+
+  const [fxParticles, setFxParticles] = useState<boolean>(false);
+  const [fxParticleDirection, setFxParticleDirection] = useState<any>("up");
+  const [fxParticleSpeed, setFxParticleSpeed] = useState<number>(0.3);
+  const [fxParticleCount, setFxParticleCount] = useState<number>(2.0);
+
   // Main visualizer state
   const [layout, setLayout] = useState<VisualizerLayout>("bottom");
   const [themeId, setThemeId] = useState<number>(1);
@@ -409,6 +445,27 @@ export const App = () => {
     }
   };
 
+  // Reads dimensions off the file rather than forcing a preset — a CapCut 9:16
+  // export is often 1080x1916, not exactly 1080x1920, and forcing a preset
+  // would letterbox or crop it.
+  const handleEffectsVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 500 * 1024 * 1024) { alert("Video must be under 500MB."); return; }
+    setFxVideoName(file.name);
+    const blobUrl = URL.createObjectURL(file);
+    const vid = document.createElement("video");
+    vid.preload = "metadata";
+    vid.onloadedmetadata = () => {
+      setFxDuration(vid.duration);
+      setFxWidth(vid.videoWidth);
+      setFxHeight(vid.videoHeight);
+      setFxVideoUrl(blobUrl);
+    };
+    vid.onerror = () => alert("Couldn't read that video. Try an MP4.");
+    vid.src = blobUrl;
+  };
+
   const handleLyricsUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -444,6 +501,7 @@ export const App = () => {
   };
 
   const handleRender = async (testMode = false) => {
+    if (appMode === "effects") return handleRenderEffects(testMode);
     const fullFrames = Math.ceil(audioDuration * 30);
     const durationInFrames = testMode ? Math.min(150, fullFrames) : fullFrames;
     track('export_started', {
@@ -541,6 +599,115 @@ export const App = () => {
     }
   };
 
+  // Renders at the source clip's own dimensions so nothing is letterboxed or
+  // cropped. Blob videos can't go through OffthreadVideo, so frames are
+  // pre-extracted to JPEGs first — same path the visualizer uses for video
+  // backgrounds. allowHtmlInCanvas stays off; it breaks this capture entirely.
+  const handleRenderEffects = async (testMode = false) => {
+    if (!fxVideoUrl) return;
+    const fullFrames = Math.ceil(fxDuration * 30);
+    const durationInFrames = testMode ? Math.min(150, fullFrames) : fullFrames;
+    track('effects_export_started', { test_mode: testMode });
+    setIsRendering(true);
+    setRenderStatus("Rendering 0%");
+    const abortController = new AbortController();
+    renderAbortRef.current = abortController;
+
+    try {
+      const { canRender, issues } = await canRenderMediaOnWeb({
+        container: "mp4",
+        width: fxWidth,
+        height: fxHeight,
+      });
+      if (!canRender) {
+        const msg = issues.filter(i => i.severity === "error").map(i => i.message).join("\n");
+        alert(`Your browser doesn't support video export.\n\n${msg}\n\nPlease use Chrome or Edge.`);
+        return;
+      }
+
+      setRenderStatus("Extracting video frames 0%");
+      await extractVideoFrames(
+        fxVideoUrl,
+        30,
+        durationInFrames / 30,
+        (pct) => setRenderStatus(`Extracting video frames ${Math.round(pct * 100)}%`),
+        fxWidth,
+        fxHeight,
+      );
+      setRenderStatus("Rendering 0%");
+
+      const exportProps = { ...fxProps, isExporting: true };
+      const result = await renderMediaOnWeb({
+        composition: {
+          component: EffectsPass,
+          id: "EffectsPass",
+          width: fxWidth,
+          height: fxHeight,
+          fps: 30,
+          durationInFrames,
+          defaultProps: exportProps,
+        },
+        inputProps: exportProps,
+        container: "mp4",
+        videoBitrate: 25_000_000,
+        signal: abortController.signal,
+        onProgress: ({ progress }) => setRenderStatus(`Rendering ${Math.round(progress * 100)}%`),
+      });
+
+      clearVideoFrames(fxVideoUrl);
+      const blob = await result.getBlob();
+      track('effects_export_completed', { test_mode: testMode });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const base = fxVideoName.replace(/\.[^.]+$/, "") || "effects";
+      a.download = `${base}-fx${testMode ? "-5sec-test" : ""}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      clearVideoFrames(fxVideoUrl);
+      if (err?.name !== "AbortError") {
+        console.error(err);
+        alert(`Export failed: ${err?.message ?? "Unknown error"}`);
+      }
+    } finally {
+      renderAbortRef.current = null;
+      setIsRendering(false);
+      setRenderStatus("Rendering");
+    }
+  };
+
+  const exportReady = appMode === "effects"
+    ? Boolean(fxVideoUrl)
+    : Boolean(audioReady && backgroundUrl);
+
+  const fxFrames = Math.ceil(fxDuration * 30);
+  const fxProps = {
+    videoSrc: fxVideoUrl || "",
+    videoDurationInFrames: fxFrames,
+    bypass: fxBypass,
+    gradeStrength: fxGradeStrength,
+    gradeTint: fxGradeTint,
+    gradeSaturation: fxGradeSaturation,
+    gradeContrast: fxGradeContrast,
+    pulseIntensity: fxPulseIntensity,
+    pulseFlash: fxPulseFlash,
+    pulseFlashIntensity: fxPulseFlashIntensity,
+    pulseLeadFrames: fxPulseLead,
+    leakIntensity: fxLeakIntensity,
+    leakSize: fxLeakSize,
+    leakColor: fxLeakColor,
+    leakGaps: fxLeakGaps,
+    grainIntensity: fxGrain,
+    vignetteIntensity: fxVignette,
+    showParticles: fxParticles,
+    particleDirection: fxParticleDirection,
+    particleSpeed: fxParticleSpeed,
+    particleCount: fxParticleCount,
+  };
+
   const inputProps: VisualizerProps = {
     audioSrc: audioUrl || "",
     audioDuration,
@@ -599,6 +766,167 @@ export const App = () => {
         </div>
 
         <div className="sidebar-content">
+
+          <div className="control-group" style={{ marginTop: 0 }}>
+            <div className="segmented-control">
+              <button className={appMode === "visualizer" ? "active" : ""} onClick={() => setAppMode("visualizer")}>Visualizer</button>
+              <button className={appMode === "effects" ? "active" : ""} onClick={() => setAppMode("effects")}>Effects Pass</button>
+            </div>
+          </div>
+
+          {appMode === "effects" ? (
+          <>
+            <div className="section-title" style={{ marginTop: 0 }}>
+              <Upload size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5, marginBottom: 1 }} />
+              1. Your Video
+            </div>
+            <div className="control-group">
+              <label>Finished Video (audio baked in)</label>
+              <label className="file-upload">
+                <FileImage className="file-upload-icon" size={20} />
+                <span className="file-upload-text">{fxVideoName ? `✓ ${fxVideoName}` : "Upload MP4"}</span>
+                <input type="file" accept="video/*" onChange={handleEffectsVideoUpload} />
+              </label>
+              {fxVideoUrl && (
+                <p style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 6, opacity: 0.8 }}>
+                  {fxWidth}×{fxHeight} · {fxDuration.toFixed(1)}s · exports at source size
+                </p>
+              )}
+            </div>
+
+            <div className="toggle-group">
+              <label title="Flips to the untouched original so you can judge how subtle the effects really are">Compare to Original</label>
+              <label className="switch">
+                <input type="checkbox" checked={fxBypass} onChange={e => setFxBypass(e.target.checked)} />
+                <span className="slider"></span>
+              </label>
+            </div>
+
+            {/* ── Unifying grade ── */}
+            <div className="section-title">
+              <Palette size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5, marginBottom: 1 }} />
+              2. Unify Color
+            </div>
+            <p style={{ fontSize: 10, color: "var(--text-secondary)", opacity: 0.75, margin: "0 0 10px", lineHeight: 1.5 }}>
+              Pulls every shot toward one cast. This is what fixes clips that don't match.
+            </p>
+            <div className="control-group">
+              <label>Tint Strength <span className="label-value">{Math.round(fxGradeStrength * 100)}%</span></label>
+              <input type="range" className="range-input" min={0} max={1} step={0.01} value={fxGradeStrength} onChange={e => setFxGradeStrength(parseFloat(e.target.value))} />
+            </div>
+            <div className="control-group">
+              <label>Tint Color</label>
+              <input type="color" value={fxGradeTint} onChange={e => setFxGradeTint(e.target.value)} style={{ width: "100%", height: 34, background: "none", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, cursor: "pointer" }} />
+            </div>
+            <div className="control-group">
+              <label>Saturation <span className="label-value">{fxGradeSaturation.toFixed(2)}×</span></label>
+              <input type="range" className="range-input" min={0.5} max={1.5} step={0.01} value={fxGradeSaturation} onChange={e => setFxGradeSaturation(parseFloat(e.target.value))} />
+            </div>
+            <div className="control-group">
+              <label>Contrast <span className="label-value">{fxGradeContrast.toFixed(2)}×</span></label>
+              <input type="range" className="range-input" min={0.8} max={1.3} step={0.01} value={fxGradeContrast} onChange={e => setFxGradeContrast(parseFloat(e.target.value))} />
+            </div>
+
+            {/* ── Pulse ── */}
+            <div className="section-title">
+              <Zap size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5, marginBottom: 1 }} />
+              3. Beat Pulse
+            </div>
+            <div className="control-group">
+              <label>Pulse Strength <span className="label-value">{Math.round(fxPulseIntensity * 100)}%</span></label>
+              <input type="range" className="range-input" min={0} max={1} step={0.01} value={fxPulseIntensity} onChange={e => setFxPulseIntensity(parseFloat(e.target.value))} />
+            </div>
+            <div className="control-group">
+              <label title="Starts the motion slightly early so the peak lands on the beat instead of just after it">Beat Timing <span className="label-value">{fxPulseLead > 0 ? `${fxPulseLead}f early` : "on beat"}</span></label>
+              <input type="range" className="range-input" min={0} max={6} step={1} value={fxPulseLead} onChange={e => setFxPulseLead(parseInt(e.target.value))} />
+            </div>
+            <div className="toggle-group">
+              <label title="Off by default — this is the layer that reads as strobing">Add Flash</label>
+              <label className="switch">
+                <input type="checkbox" checked={fxPulseFlash} onChange={e => setFxPulseFlash(e.target.checked)} />
+                <span className="slider"></span>
+              </label>
+            </div>
+            {fxPulseFlash && (
+              <div className="control-group">
+                <label>Flash Strength <span className="label-value">{Math.round(fxPulseFlashIntensity * 100)}%</span></label>
+                <input type="range" className="range-input" min={0} max={1} step={0.01} value={fxPulseFlashIntensity} onChange={e => setFxPulseFlashIntensity(parseFloat(e.target.value))} />
+              </div>
+            )}
+
+            {/* ── Light leak ── */}
+            <div className="section-title">
+              <SlidersHorizontal size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5, marginBottom: 1 }} />
+              4. Light Leak
+            </div>
+            <div className="control-group">
+              <label>Leak Intensity <span className="label-value">{Math.round(fxLeakIntensity * 100)}%</span></label>
+              <input type="range" className="range-input" min={0} max={1} step={0.01} value={fxLeakIntensity} onChange={e => setFxLeakIntensity(parseFloat(e.target.value))} />
+            </div>
+            <div className="control-group">
+              <label>Leak Size <span className="label-value">{Math.round(fxLeakSize * 100)}%</span></label>
+              <input type="range" className="range-input" min={0.15} max={0.7} step={0.01} value={fxLeakSize} onChange={e => setFxLeakSize(parseFloat(e.target.value))} />
+            </div>
+            <div className="control-group">
+              <label>Leak Color</label>
+              <input type="color" value={fxLeakColor} onChange={e => setFxLeakColor(e.target.value)} style={{ width: "100%", height: 34, background: "none", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, cursor: "pointer" }} />
+            </div>
+            <div className="toggle-group">
+              <label title="Fades the leak fully out between bursts instead of leaving it on screen the whole time">Come and Go</label>
+              <label className="switch">
+                <input type="checkbox" checked={fxLeakGaps} onChange={e => setFxLeakGaps(e.target.checked)} />
+                <span className="slider"></span>
+              </label>
+            </div>
+
+            {/* ── Texture ── */}
+            <div className="section-title">
+              <Palette size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5, marginBottom: 1 }} />
+              5. Texture
+            </div>
+            <div className="control-group">
+              <label title="A shared grain floor also helps hide noise differences between shots">Film Grain <span className="label-value">{Math.round(fxGrain * 100)}%</span></label>
+              <input type="range" className="range-input" min={0} max={1} step={0.01} value={fxGrain} onChange={e => setFxGrain(parseFloat(e.target.value))} />
+            </div>
+            <div className="control-group">
+              <label>Vignette <span className="label-value">{Math.round(fxVignette * 100)}%</span></label>
+              <input type="range" className="range-input" min={0} max={1} step={0.01} value={fxVignette} onChange={e => setFxVignette(parseFloat(e.target.value))} />
+            </div>
+
+            {/* ── Particles ── */}
+            <div className="toggle-group">
+              <label>Particles</label>
+              <label className="switch">
+                <input type="checkbox" checked={fxParticles} onChange={e => setFxParticles(e.target.checked)} />
+                <span className="slider"></span>
+              </label>
+            </div>
+            {fxParticles && (
+              <>
+                <div className="control-group">
+                  <label>Direction</label>
+                  <select className="select-input" value={fxParticleDirection} onChange={e => setFxParticleDirection(e.target.value)}>
+                    <option value="up">Up</option>
+                    <option value="down">Down</option>
+                    <option value="left">Left</option>
+                    <option value="right">Right</option>
+                    <option value="out">Outward</option>
+                    <option value="in">Inward</option>
+                  </select>
+                </div>
+                <div className="control-group">
+                  <label>Amount <span className="label-value">{fxParticleCount.toFixed(1)}×</span></label>
+                  <input type="range" className="range-input" min={0.5} max={6} step={0.1} value={fxParticleCount} onChange={e => setFxParticleCount(parseFloat(e.target.value))} />
+                </div>
+                <div className="control-group">
+                  <label>Speed <span className="label-value">{fxParticleSpeed.toFixed(2)}×</span></label>
+                  <input type="range" className="range-input" min={0.05} max={1} step={0.01} value={fxParticleSpeed} onChange={e => setFxParticleSpeed(parseFloat(e.target.value))} />
+                </div>
+              </>
+            )}
+          </>
+          ) : (
+          <>
 
           {/* ── 1. Media Assets ─────────────────────────────────── */}
           <div className="section-title" style={{ marginTop: 0 }}>
@@ -885,22 +1213,30 @@ export const App = () => {
               </p>
             </div>
           )}
+          </>
+          )}
         </div>
 
         <div className="sidebar-footer">
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <div className="control-group" style={{ marginBottom: 0 }}>
-              <label>Quality</label>
-              <div className="segmented-control">
-                <button className={exportQuality === "1080p" ? "active" : ""} onClick={() => setExportQuality("1080p")}>1080p HD</button>
-                <button className={exportQuality === "4K" ? "active" : ""} onClick={() => setExportQuality("4K")}>4K UHD</button>
+            {appMode === "effects" ? (
+              <p style={{ fontSize: 10, color: "var(--text-secondary)", opacity: 0.75, margin: "0 0 2px", textAlign: "center" }}>
+                Exports at {fxWidth}×{fxHeight}, matching your source
+              </p>
+            ) : (
+              <div className="control-group" style={{ marginBottom: 0 }}>
+                <label>Quality</label>
+                <div className="segmented-control">
+                  <button className={exportQuality === "1080p" ? "active" : ""} onClick={() => setExportQuality("1080p")}>1080p HD</button>
+                  <button className={exportQuality === "4K" ? "active" : ""} onClick={() => setExportQuality("4K")}>4K UHD</button>
+                </div>
               </div>
-            </div>
+            )}
             <button
               className="primary-button"
               onClick={() => handleRender(false)}
-              disabled={!audioReady || !backgroundUrl || isRendering || canExport === false}
-              title={canExport === false ? "Export requires Chrome or Edge" : !audioReady ? "Load an audio file first" : ""}
+              disabled={!exportReady || isRendering || canExport === false}
+              title={canExport === false ? "Export requires Chrome or Edge" : !exportReady ? "Load your media first" : ""}
             >
               {isRendering ? renderStatus : canExport === false ? "Export (Chrome/Edge only)" : "Export MP4"}
             </button>
@@ -916,7 +1252,7 @@ export const App = () => {
               <button
                 className="primary-button"
                 onClick={() => handleRender(true)}
-                disabled={!audioReady || !backgroundUrl || canExport === false}
+                disabled={!exportReady || canExport === false}
                 title="Export first 5 seconds only — great for quickly checking your settings"
                 style={{ fontSize: 13, opacity: 0.6, padding: "10px" }}
               >
@@ -963,7 +1299,25 @@ export const App = () => {
       <div className="preview-area">
         <div className="preview-container">
           <div className="player-wrapper">
-            {audioUrl && backgroundUrl ? (
+            {appMode === "effects" ? (
+              fxVideoUrl && fxFrames > 0 ? (
+                <Player
+                  component={EffectsPass}
+                  inputProps={{ ...fxProps, isExporting: false }}
+                  durationInFrames={fxFrames}
+                  fps={30}
+                  compositionWidth={fxWidth}
+                  compositionHeight={fxHeight}
+                  style={{ width: "100%", height: "100%" }}
+                  controls
+                />
+              ) : (
+                <div className="empty-state">
+                  <FileAudio className="empty-state-icon" />
+                  <h2>Upload a video to preview</h2>
+                </div>
+              )
+            ) : audioUrl && backgroundUrl ? (
               <Player component={VisualizerMain} inputProps={{...inputProps, isExporting: false}} durationInFrames={Math.ceil(audioDuration * 30)} fps={30} compositionWidth={1920} compositionHeight={1080} style={{ width: "100%", height: "100%" }} controls />
             ) : (
               <div className="empty-state">

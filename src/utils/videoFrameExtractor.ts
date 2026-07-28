@@ -14,6 +14,11 @@ export async function extractVideoFrames(
   fps: number,
   durationSeconds: number,
   onProgress?: (pct: number) => void,
+  // Effects Pass renders the clip at its own size, so it passes the source
+  // dimensions here — the defaults would downscale a 1080x1916 clip to
+  // 609x1080 and then upscale it again on export.
+  maxW: number = MAX_EXTRACT_W,
+  maxH: number = MAX_EXTRACT_H,
 ): Promise<void> {
   if (store.has(src)) return;
 
@@ -39,10 +44,10 @@ export async function extractVideoFrames(
 
     // Scale down canvas to MAX_EXTRACT_W×MAX_EXTRACT_H, preserving aspect ratio
     const aspect = video.videoWidth / video.videoHeight;
-    let canvasW = Math.min(video.videoWidth, MAX_EXTRACT_W);
+    let canvasW = Math.min(video.videoWidth, maxW);
     let canvasH = Math.round(canvasW / aspect);
-    if (canvasH > MAX_EXTRACT_H) {
-      canvasH = MAX_EXTRACT_H;
+    if (canvasH > maxH) {
+      canvasH = maxH;
       canvasW = Math.round(canvasH * aspect);
     }
 
@@ -60,7 +65,14 @@ export async function extractVideoFrames(
       });
 
       ctx.drawImage(video, 0, 0, canvasW, canvasH);
-      frames.push(canvas.toDataURL("image/jpeg", 0.92));
+      // Object URLs over data URLs: base64 costs ~33% more memory and decodes
+      // far slower. At full 9:16 resolution the data-URL path overran
+      // Remotion's delayRender timeout mid-export.
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, "image/jpeg", 0.92),
+      );
+      if (!blob) throw new Error("Frame extraction failed — browser ran out of memory.");
+      frames.push(URL.createObjectURL(blob));
       onProgress?.((i + 1) / frameCount);
 
       // Yield every 4 frames so the browser can handle React renders,
@@ -81,6 +93,14 @@ export function getVideoFrame(src: string, frameIndex: number): string | null {
 }
 
 export function clearVideoFrames(src?: string): void {
-  if (src) store.delete(src);
-  else store.clear();
+  // Object URLs hold their blob in memory until explicitly revoked.
+  const revoke = (urls: string[]) => urls.forEach((u) => URL.revokeObjectURL(u));
+  if (src) {
+    const frames = store.get(src);
+    if (frames) revoke(frames);
+    store.delete(src);
+  } else {
+    store.forEach(revoke);
+    store.clear();
+  }
 }
