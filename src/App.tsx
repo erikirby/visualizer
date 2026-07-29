@@ -283,6 +283,8 @@ export const App = () => {
   // visualizer, so it needs more travel to read.
   const [fxPulseIntensity, setFxPulseIntensity] = useState<number>(2);
   const [fxPulseReactivity, setFxPulseReactivity] = useState<number>(0.5);
+  const [fxPulseLead, setFxPulseLead] = useState<number>(0);
+  const [fxSpectrumType, setFxSpectrumType] = useState<"bass" | "wide">("bass");
   const [fxPulseFlash, setFxPulseFlash] = useState<boolean>(false);
   const [fxPulseFlashIntensity, setFxPulseFlashIntensity] = useState<number>(0.5);
 
@@ -684,6 +686,8 @@ export const App = () => {
     gradeContrast: fxGradeContrast,
     pulseIntensity: fxPulseIntensity,
     pulseReactivity: fxPulseReactivity,
+    pulseLeadFrames: fxPulseLead,
+    spectrumType: fxSpectrumType,
     pulseFlash: fxPulseFlash,
     pulseFlashIntensity: fxPulseFlashIntensity,
     leakIntensity: fxLeakIntensity,
@@ -823,8 +827,19 @@ export const App = () => {
               3. Beat Pulse
             </div>
             <div className="control-group">
+              <label>Spectrum</label>
+              <div className="segmented-control">
+                <button className={fxSpectrumType === "bass" ? "active" : ""} onClick={() => setFxSpectrumType("bass")}>Bass</button>
+                <button className={fxSpectrumType === "wide" ? "active" : ""} onClick={() => setFxSpectrumType("wide")}>Wide</button>
+              </div>
+            </div>
+            <div className="control-group">
               <label>Zoom Intensity <span className="label-value">{fxPulseIntensity === 0 ? 'Off' : fxPulseIntensity.toFixed(1) + 'x'}</span></label>
               <input type="range" className="range-input" min={0} max={3} step={0.1} value={fxPulseIntensity} onChange={e => setFxPulseIntensity(parseFloat(e.target.value))} />
+            </div>
+            <div className="control-group">
+              <label title="Nudge the pulse earlier or later if it drifts off the audio">Beat Timing <span className="label-value">{fxPulseLead === 0 ? 'On beat' : fxPulseLead > 0 ? `${fxPulseLead}f early` : `${-fxPulseLead}f late`}</span></label>
+              <input type="range" className="range-input" min={-6} max={6} step={1} value={fxPulseLead} onChange={e => setFxPulseLead(parseInt(e.target.value))} />
             </div>
             <div className="control-group">
               <label title="Peaks explode while quiet parts stay quiet, so the pulse gets deeper without the whole shot drifting bigger">Reactivity <span className="label-value">{fxPulseReactivity === 0 ? 'Off' : fxPulseReactivity >= 1 ? 'Max' : `${Math.round(fxPulseReactivity * 100)}%`}</span></label>

@@ -4,7 +4,7 @@ import { Video } from "@remotion/media";
 import { useAudioData, visualizeAudio } from "@remotion/media-utils";
 import { Particles } from "./components/Particles";
 import type { ParticleDirection } from "./components/Particles";
-import { getBassEnergy, softCeil } from "./utils/audioColor";
+import { getBassEnergy, getMusicViz, softCeil } from "./utils/audioColor";
 
 /**
  * EffectsPass — final-polish mode.
@@ -32,19 +32,27 @@ const VIDEO_FILL: React.CSSProperties = {
  * curve's v-squared term is negligible. Normalising first is what makes both
  * behave the way they do in the Visualizer tab.
  */
-function buildBassPeak(audioData: ReturnType<typeof useAudioData>, fps: number): number {
+function buildBassPeak(
+  audioData: ReturnType<typeof useAudioData>,
+  fps: number,
+  spectrumType: "bass" | "wide",
+): number {
   if (!audioData) return 0.08;
   const total = Math.floor(audioData.durationInSeconds * fps);
   const pcts = Array.from({ length: 15 }, (_, k) => (k + 1) / 16);
   const vals = pcts.map((pct) =>
     getBassEnergy(
-      visualizeAudio({
-        fps,
-        frame: Math.max(0, Math.min(Math.floor(pct * total), total - 1)),
-        audioData,
-        numberOfSamples: 128,
-        smoothing: true,
-      }),
+      getMusicViz(
+        visualizeAudio({
+          fps,
+          frame: Math.max(0, Math.min(Math.floor(pct * total), total - 1)),
+          audioData,
+          numberOfSamples: 128,
+          smoothing: true,
+        }),
+        128,
+        spectrumType,
+      ),
     ),
   );
   return Math.max(...vals, 0.02);
@@ -65,6 +73,9 @@ export interface EffectsPassProps {
   // ── Beat pulse ─────────────────────────────────────────────────────────────
   pulseIntensity?: number;      // 0–3 multiplier, same scale as Zoom Intensity
   pulseReactivity?: number;     // 0–1 contrast curve, same as the Reactivity slider
+  /** Frame offset for nudging the pulse when it drifts off the audio. */
+  pulseLeadFrames?: number;
+  spectrumType?: "bass" | "wide";
   pulseFlash?: boolean;         // optional luminance flash on top of the scale
   pulseFlashIntensity?: number; // 0–1
   pulseFlashColor?: string;
@@ -101,6 +112,8 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
 
   pulseIntensity = 1,
   pulseReactivity = 0,
+  pulseLeadFrames = 0,
+  spectrumType = "bass",
   pulseFlash = false,
   pulseFlashIntensity = 0.5,
   pulseFlashColor = "#FFFFFF",
@@ -124,7 +137,10 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
   const frame = useCurrentFrame();
   const { width: W, height: H, fps } = useVideoConfig();
   const audioData = useAudioData(videoSrc);
-  const bassPeak = React.useMemo(() => buildBassPeak(audioData, fps), [audioData, fps]);
+  const bassPeak = React.useMemo(
+    () => buildBassPeak(audioData, fps, spectrumType),
+    [audioData, fps, spectrumType],
+  );
 
   // ── Beat analysis ──────────────────────────────────────────────────────────
   // Same split the visualizer settled on in 5345fdc1: the 128-sample smoothed
@@ -134,13 +150,20 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
   // pulse.
   const { pump, kick } = React.useMemo(() => {
     if (!audioData) return { pump: 0, kick: 0 };
+    // Beat Timing shifts which frame is read, so a pulse that drifts off the
+    // audio can be nudged either way until it sits right.
+    const readFrame = Math.max(0, frame + pulseLeadFrames);
     // 3-frame temporal smoothing, as the DNA Helix does in 7dfe85e3.
     const smoothed = [-1, 0, 1].map((o) =>
       getBassEnergy(
-        visualizeAudio({
-          fps, frame: Math.max(0, frame + o), audioData,
-          numberOfSamples: 128, smoothing: true,
-        }),
+        getMusicViz(
+          visualizeAudio({
+            fps, frame: Math.max(0, readFrame + o), audioData,
+            numberOfSamples: 128, smoothing: true,
+          }),
+          128,
+          spectrumType,
+        ),
       ),
     );
     // Normalised against the track's own bass peak, as BarEQ does.
@@ -149,7 +172,11 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
 
     const rawBass = pulseFlash
       ? norm(getBassEnergy(
-          visualizeAudio({ fps, frame, audioData, numberOfSamples: 32, smoothing: false }),
+          getMusicViz(
+            visualizeAudio({ fps, frame: readFrame, audioData, numberOfSamples: 128, smoothing: false }),
+            128,
+            spectrumType,
+          ),
         ))
       : 0;
 
@@ -157,7 +184,7 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
       pump: smoothBass,
       kick: pulseFlash ? Math.min(1, Math.max(0, rawBass - smoothBass - 0.10) * 3) : 0,
     };
-  }, [audioData, frame, fps, pulseFlash, bassPeak]);
+  }, [audioData, frame, fps, pulseFlash, bassPeak, pulseLeadFrames, spectrumType]);
 
   if (bypass) {
     return (
