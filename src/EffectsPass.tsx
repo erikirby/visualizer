@@ -5,6 +5,7 @@ import { useAudioData, visualizeAudio } from "@remotion/media-utils";
 import { Particles } from "./components/Particles";
 import type { ParticleDirection } from "./components/Particles";
 import { getBassEnergy, getMusicViz, softCeil } from "./utils/audioColor";
+import { getThemeAtTime } from "./utils/themes";
 
 /**
  * EffectsPass — final-polish mode.
@@ -151,10 +152,16 @@ export interface EffectsPassProps {
   pulseLeadFrames?: number;
   /** 1 = every bass hit, 2 = every 2nd, 4 = every 4th. Fixes double-time. */
   pulseDivision?: number;
+  /** Hold the pulse off until this many seconds in — e.g. start it at the chorus. */
+  pulseStartSec?: number;
   spectrumType?: "bass" | "wide";
   pulseFlash?: boolean;         // optional luminance flash on top of the scale
   pulseFlashIntensity?: number; // 0–1
   pulseFlashColor?: string;
+  /** Cycle the flash through a theme instead of a fixed colour. */
+  pulseFlashCycle?: boolean;
+  /** Which cycling theme to use — 9 Iridescent, 10 Pastel Rainbow, 13 Neon Night. */
+  pulseFlashCycleTheme?: number;
 
   // ── Light leak ─────────────────────────────────────────────────────────────
   leakIntensity?: number; // 0–1 (0 = off)
@@ -190,10 +197,14 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
   pulseReactivity = 0,
   pulseLeadFrames = 0,
   pulseDivision = 1,
+  pulseStartSec = 0,
   spectrumType = "bass",
   pulseFlash = false,
   pulseFlashIntensity = 0.5,
-  pulseFlashColor = "#FFFFFF",
+  // Brand pink rather than white: a white flash blows out pastel footage.
+  pulseFlashColor = "#FF2D9B",
+  pulseFlashCycle = false,
+  pulseFlashCycleTheme = 10,
 
   leakIntensity = 0,
   leakSize = 0.32,
@@ -292,7 +303,15 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
   const shapedPump = pulseReactivity > 0
     ? softCeil(pump + pump * pump * pulseReactivity * 1.8)
     : pump;
-  const pulseScale = 1 + shapedPump * 0.035 * pulseIntensity;
+
+  // Hold the pulse off until the section you actually want it in. Ramped over
+  // half a second rather than switched on, so it fades in instead of popping.
+  const START_RAMP = 0.5;
+  const startGate = pulseStartSec > 0
+    ? Math.max(0, Math.min(1, (frame / fps - pulseStartSec) / START_RAMP))
+    : 1;
+
+  const pulseScale = 1 + shapedPump * startGate * 0.035 * pulseIntensity;
 
   const t = frame / fps;
 
@@ -437,9 +456,13 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
         <AbsoluteFill
           style={{
             pointerEvents: "none",
-            background: pulseFlashColor,
+            // Cycling reuses the existing themes (10 = Pastel Rainbow), so the
+            // flash drifts through colour instead of strobing one hue.
+            background: pulseFlashCycle
+              ? getThemeAtTime(pulseFlashCycleTheme, t).colorA
+              : pulseFlashColor,
             mixBlendMode: "screen",
-            opacity: kick * pulseFlashIntensity * 0.12,
+            opacity: kick * startGate * pulseFlashIntensity * 0.12,
           }}
         />
       )}

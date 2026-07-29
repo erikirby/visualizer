@@ -47,6 +47,12 @@ function cropImageToCover(src: string, targetW: number, targetH: number): Promis
 // Analyze a background image URL and return the theme id whose colorA is
 // complementary to the image's dominant saturated hue. Uses circular-mean
 // for correct hue averaging across the hue wheel.
+function fmtTime(sec: number): string {
+  const m = Math.floor(sec / 60);
+  const s = sec - m * 60;
+  return `${m}:${s.toFixed(1).padStart(4, "0")}`;
+}
+
 function hslToHex(h: number, s: number, l: number): string {
   const c = (1 - Math.abs(2 * l - 1)) * s;
   const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
@@ -288,8 +294,13 @@ export const App = () => {
   // Defaults to 2: this track (and most 4-on-the-floor with offbeat bass) reads
   // as double-time on every hit.
   const [fxPulseDivision, setFxPulseDivision] = useState<number>(2);
+  const [fxPulseStart, setFxPulseStart] = useState<number>(0);
   const [fxPulseFlash, setFxPulseFlash] = useState<boolean>(false);
   const [fxPulseFlashIntensity, setFxPulseFlashIntensity] = useState<number>(0.5);
+  // Brand pink, not white — white blows out pastel footage.
+  const [fxPulseFlashColor, setFxPulseFlashColor] = useState<string>("#FF2D9B");
+  const [fxFlashCycle, setFxFlashCycle] = useState<boolean>(false);
+  const [fxFlashCycleTheme, setFxFlashCycleTheme] = useState<number>(10);
 
   const [fxLeakIntensity, setFxLeakIntensity] = useState<number>(0.5);
   const [fxLeakSize, setFxLeakSize] = useState<number>(0.32);
@@ -691,9 +702,13 @@ export const App = () => {
     pulseReactivity: fxPulseReactivity,
     pulseLeadFrames: fxPulseLead,
     pulseDivision: fxPulseDivision,
+    pulseStartSec: fxPulseStart,
     spectrumType: fxSpectrumType,
     pulseFlash: fxPulseFlash,
     pulseFlashIntensity: fxPulseFlashIntensity,
+    pulseFlashColor: fxPulseFlashColor,
+    pulseFlashCycle: fxFlashCycle,
+    pulseFlashCycleTheme: fxFlashCycleTheme,
     leakIntensity: fxLeakIntensity,
     leakSize: fxLeakSize,
     leakColor: fxLeakColor,
@@ -854,6 +869,10 @@ export const App = () => {
               <input type="range" className="range-input" min={-6} max={6} step={1} value={fxPulseLead} onChange={e => setFxPulseLead(parseInt(e.target.value))} />
             </div>
             <div className="control-group">
+              <label title="Hold the pulse off until the chorus or the drop, so quieter sections stay still">Pulse Starts At <span className="label-value">{fxPulseStart === 0 ? 'Start' : fmtTime(fxPulseStart)}</span></label>
+              <input type="range" className="range-input" min={0} max={Math.max(1, fxDuration)} step={0.1} value={Math.min(fxPulseStart, fxDuration)} onChange={e => setFxPulseStart(parseFloat(e.target.value))} />
+            </div>
+            <div className="control-group">
               <label title="Peaks explode while quiet parts stay quiet, so the pulse gets deeper without the whole shot drifting bigger">Reactivity <span className="label-value">{fxPulseReactivity === 0 ? 'Off' : fxPulseReactivity >= 1 ? 'Max' : `${Math.round(fxPulseReactivity * 100)}%`}</span></label>
               <input type="range" className="range-input" min={0} max={1} step={0.05} value={fxPulseReactivity} onChange={e => setFxPulseReactivity(parseFloat(e.target.value))} />
             </div>
@@ -865,10 +884,35 @@ export const App = () => {
               </label>
             </div>
             {fxPulseFlash && (
-              <div className="control-group">
-                <label>Flash Strength <span className="label-value">{Math.round(fxPulseFlashIntensity * 100)}%</span></label>
-                <input type="range" className="range-input" min={0} max={1} step={0.01} value={fxPulseFlashIntensity} onChange={e => setFxPulseFlashIntensity(parseFloat(e.target.value))} />
-              </div>
+              <>
+                <div className="control-group">
+                  <label>Flash Strength <span className="label-value">{Math.round(fxPulseFlashIntensity * 100)}%</span></label>
+                  <input type="range" className="range-input" min={0} max={1} step={0.01} value={fxPulseFlashIntensity} onChange={e => setFxPulseFlashIntensity(parseFloat(e.target.value))} />
+                </div>
+                <div className="toggle-group">
+                  <label title="Drifts the flash through a colour theme instead of a single hue">Cycle Colors</label>
+                  <label className="switch">
+                    <input type="checkbox" checked={fxFlashCycle} onChange={e => setFxFlashCycle(e.target.checked)} />
+                    <span className="slider"></span>
+                  </label>
+                </div>
+                {fxFlashCycle ? (
+                  <div className="control-group">
+                    <label>Cycle Theme</label>
+                    <select className="select-input" value={fxFlashCycleTheme} onChange={e => setFxFlashCycleTheme(parseInt(e.target.value))}>
+                      <option value={10}>Pastel Rainbow</option>
+                      <option value={9}>Iridescent</option>
+                      <option value={13}>Neon Night</option>
+                      <option value={11}>Abyss</option>
+                    </select>
+                  </div>
+                ) : (
+                  <div className="control-group">
+                    <label>Flash Color</label>
+                    <input type="color" value={fxPulseFlashColor} onChange={e => setFxPulseFlashColor(e.target.value)} style={{ width: "100%", height: 34, background: "none", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, cursor: "pointer" }} />
+                  </div>
+                )}
+              </>
             )}
 
             {/* ── Light leak ── */}
