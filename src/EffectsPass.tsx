@@ -4,7 +4,7 @@ import { Video } from "@remotion/media";
 import { useAudioData, visualizeAudio } from "@remotion/media-utils";
 import { Particles } from "./components/Particles";
 import type { ParticleDirection } from "./components/Particles";
-import { getBassEnergy } from "./utils/audioColor";
+import { getBassEnergy, softCeil } from "./utils/audioColor";
 
 /**
  * EffectsPass — final-polish mode.
@@ -23,6 +23,33 @@ const VIDEO_FILL: React.CSSProperties = {
 };
 
 
+/**
+ * Peak bass energy across the track, sampled at 15 reference points.
+ *
+ * Same normalisation BarEQ uses via buildBandPeaks. Without it, raw
+ * getBassEnergy lands around 0.02-0.06 rather than 0-1, so the visualizer's
+ * 0.035 coefficient produces a ~0.5% zoom (invisible) and the reactivity
+ * curve's v-squared term is negligible. Normalising first is what makes both
+ * behave the way they do in the Visualizer tab.
+ */
+function buildBassPeak(audioData: ReturnType<typeof useAudioData>, fps: number): number {
+  if (!audioData) return 0.08;
+  const total = Math.floor(audioData.durationInSeconds * fps);
+  const pcts = Array.from({ length: 15 }, (_, k) => (k + 1) / 16);
+  const vals = pcts.map((pct) =>
+    getBassEnergy(
+      visualizeAudio({
+        fps,
+        frame: Math.max(0, Math.min(Math.floor(pct * total), total - 1)),
+        audioData,
+        numberOfSamples: 128,
+        smoothing: true,
+      }),
+    ),
+  );
+  return Math.max(...vals, 0.02);
+}
+
 export interface EffectsPassProps {
   videoSrc?: string;
 
@@ -36,12 +63,11 @@ export interface EffectsPassProps {
   gradeContrast?: number;    // 0.8–1.3
 
   // ── Beat pulse ─────────────────────────────────────────────────────────────
-  pulseIntensity?: number;      // 0–1  (0 = off) scale punch
+  pulseIntensity?: number;      // 0–3 multiplier, same scale as Zoom Intensity
+  pulseReactivity?: number;     // 0–1 contrast curve, same as the Reactivity slider
   pulseFlash?: boolean;         // optional luminance flash on top of the scale
   pulseFlashIntensity?: number; // 0–1
   pulseFlashColor?: string;
-  /** Frames of anticipation so the peak lands ON the beat instead of after it. */
-  pulseLeadFrames?: number;
 
   // ── Light leak ─────────────────────────────────────────────────────────────
   leakIntensity?: number; // 0–1 (0 = off)
@@ -73,11 +99,11 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
   gradeSaturation = 1,
   gradeContrast = 1,
 
-  pulseIntensity = 0,
+  pulseIntensity = 1,
+  pulseReactivity = 0,
   pulseFlash = false,
   pulseFlashIntensity = 0.5,
   pulseFlashColor = "#FFFFFF",
-  pulseLeadFrames = 2,
 
   leakIntensity = 0,
   leakSize = 0.32,
@@ -98,29 +124,40 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
   const frame = useCurrentFrame();
   const { width: W, height: H, fps } = useVideoConfig();
   const audioData = useAudioData(videoSrc);
+  const bassPeak = React.useMemo(() => buildBassPeak(audioData, fps), [audioData, fps]);
 
   // ── Beat analysis ──────────────────────────────────────────────────────────
   // Same split the visualizer settled on in 5345fdc1: the 128-sample smoothed
   // read drives MOVEMENT (it averages out jitter), and the raw transient drives
   // the FLASH only. Putting the transient into the geometry makes the scale
   // spike for a single frame and snap back, which reads as a stutter, not a
-  // pulse. Sampled `pulseLeadFrames` ahead so the rise leads the beat.
+  // pulse.
   const { pump, kick } = React.useMemo(() => {
     if (!audioData) return { pump: 0, kick: 0 };
-    const readFrame = frame + pulseLeadFrames;
-    const vizRaw = visualizeAudio({
-      fps, frame: readFrame, audioData, numberOfSamples: 32, smoothing: false,
-    });
-    const vizSmooth = visualizeAudio({
-      fps, frame: readFrame, audioData, numberOfSamples: 128, smoothing: true,
-    });
-    const rawBass = getBassEnergy(vizRaw);
-    const smoothBass = getBassEnergy(vizSmooth);
+    // 3-frame temporal smoothing, as the DNA Helix does in 7dfe85e3.
+    const smoothed = [-1, 0, 1].map((o) =>
+      getBassEnergy(
+        visualizeAudio({
+          fps, frame: Math.max(0, frame + o), audioData,
+          numberOfSamples: 128, smoothing: true,
+        }),
+      ),
+    );
+    // Normalised against the track's own bass peak, as BarEQ does.
+    const norm = (v: number) => Math.min(1.2, (v / bassPeak) * 0.8);
+    const smoothBass = norm((smoothed[0] + smoothed[1] + smoothed[2]) / 3);
+
+    const rawBass = pulseFlash
+      ? norm(getBassEnergy(
+          visualizeAudio({ fps, frame, audioData, numberOfSamples: 32, smoothing: false }),
+        ))
+      : 0;
+
     return {
       pump: smoothBass,
-      kick: Math.min(1, Math.max(0, rawBass - smoothBass - 0.10) * 3),
+      kick: pulseFlash ? Math.min(1, Math.max(0, rawBass - smoothBass - 0.10) * 3) : 0,
     };
-  }, [audioData, frame, fps, pulseLeadFrames]);
+  }, [audioData, frame, fps, pulseFlash, bassPeak]);
 
   if (bypass) {
     return (
@@ -130,9 +167,21 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
     );
   }
 
-  // Movement is driven by the smoothed read ONLY — no transient term. The
-  // visualizer's 0.035 coefficient is the ceiling at full intensity.
-  const pulseScale = 1 + pump * 0.035 * pulseIntensity;
+  // Borrowed wholesale from the Visualizer tab's Fine-Tune controls.
+  //
+  // Reactivity is applyReactivity's contrast curve from 7bab5944 —
+  // v + v² × amount × 1.8 makes peaks explode while quiet stays quiet, so the
+  // pulse gets DEEPER without the floor rising. softCeil keeps the top
+  // differentiable instead of flat-topping into a clamp. The snap term from
+  // that helper is deliberately left out: it's built on the raw transient,
+  // which is what made the geometry stutter.
+  //
+  // pulseIntensity is the same 0-3 multiplier as Zoom Intensity over the same
+  // 0.035 base, so 1.0x here matches the visualizer exactly.
+  const shapedPump = pulseReactivity > 0
+    ? softCeil(pump + pump * pump * pulseReactivity * 1.8)
+    : pump;
+  const pulseScale = 1 + shapedPump * 0.035 * pulseIntensity;
 
   const t = frame / fps;
 
@@ -146,8 +195,12 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
   // here would make the leak's opacity flicker.
   const leakAlpha = leakIntensity * leakEnv * (0.75 + 0.25 * pump);
   const leakR = Math.min(W, H) * leakSize;
-  const leakCx = W * (0.78 + 0.42 * Math.sin((2 * Math.PI * t) / 11 + 0.4));
-  const leakCy = H * (0.05 + 0.12 * Math.cos((2 * Math.PI * t) / 14));
+  // Keep the hot centre near the top-right corner rather than swinging far
+  // past it. Previously it spent most of the drift fully off-frame, so only
+  // the dim outer tail was ever visible — the leak read as a faint haze no
+  // matter how high the intensity went.
+  const leakCx = W * (0.72 + 0.26 * Math.sin((2 * Math.PI * t) / 11 + 0.4));
+  const leakCy = H * (0.10 + 0.13 * Math.cos((2 * Math.PI * t) / 14));
   // Oversized SVG so the gradient's hard clip sits well outside the frame.
   const PAD = Math.round(Math.max(W, H) * 0.35);
 
@@ -199,8 +252,9 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
                 r={leakR}
                 gradientUnits="userSpaceOnUse"
               >
-                <stop offset="0%" stopColor={leakColor} stopOpacity={0.85} />
-                <stop offset="45%" stopColor={leakColor} stopOpacity={0.25} />
+                <stop offset="0%" stopColor={leakColor} stopOpacity={1} />
+                <stop offset="30%" stopColor={leakColor} stopOpacity={0.62} />
+                <stop offset="65%" stopColor={leakColor} stopOpacity={0.22} />
                 <stop offset="100%" stopColor={leakColor} stopOpacity={0} />
               </radialGradient>
             </defs>

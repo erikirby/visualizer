@@ -278,10 +278,13 @@ export const App = () => {
   const [fxGradeSaturation, setFxGradeSaturation] = useState<number>(1);
   const [fxGradeContrast, setFxGradeContrast] = useState<number>(1);
 
-  const [fxPulseIntensity, setFxPulseIntensity] = useState<number>(1);
+  // Same 0-3 scale as the visualizer's Zoom Intensity. Defaults above 1.0x
+  // because here the footage is the subject, not a background behind a
+  // visualizer, so it needs more travel to read.
+  const [fxPulseIntensity, setFxPulseIntensity] = useState<number>(2);
+  const [fxPulseReactivity, setFxPulseReactivity] = useState<number>(0.5);
   const [fxPulseFlash, setFxPulseFlash] = useState<boolean>(false);
   const [fxPulseFlashIntensity, setFxPulseFlashIntensity] = useState<number>(0.5);
-  const [fxPulseLead, setFxPulseLead] = useState<number>(2);
 
   const [fxLeakIntensity, setFxLeakIntensity] = useState<number>(0.5);
   const [fxLeakSize, setFxLeakSize] = useState<number>(0.32);
@@ -680,9 +683,9 @@ export const App = () => {
     gradeSaturation: fxGradeSaturation,
     gradeContrast: fxGradeContrast,
     pulseIntensity: fxPulseIntensity,
+    pulseReactivity: fxPulseReactivity,
     pulseFlash: fxPulseFlash,
     pulseFlashIntensity: fxPulseFlashIntensity,
-    pulseLeadFrames: fxPulseLead,
     leakIntensity: fxLeakIntensity,
     leakSize: fxLeakSize,
     leakColor: fxLeakColor,
@@ -820,12 +823,12 @@ export const App = () => {
               3. Beat Pulse
             </div>
             <div className="control-group">
-              <label>Pulse Strength <span className="label-value">{Math.round(fxPulseIntensity * 100)}%</span></label>
-              <input type="range" className="range-input" min={0} max={1} step={0.01} value={fxPulseIntensity} onChange={e => setFxPulseIntensity(parseFloat(e.target.value))} />
+              <label>Zoom Intensity <span className="label-value">{fxPulseIntensity === 0 ? 'Off' : fxPulseIntensity.toFixed(1) + 'x'}</span></label>
+              <input type="range" className="range-input" min={0} max={3} step={0.1} value={fxPulseIntensity} onChange={e => setFxPulseIntensity(parseFloat(e.target.value))} />
             </div>
             <div className="control-group">
-              <label title="Starts the motion slightly early so the peak lands on the beat instead of just after it">Beat Timing <span className="label-value">{fxPulseLead > 0 ? `${fxPulseLead}f early` : "on beat"}</span></label>
-              <input type="range" className="range-input" min={0} max={6} step={1} value={fxPulseLead} onChange={e => setFxPulseLead(parseInt(e.target.value))} />
+              <label title="Peaks explode while quiet parts stay quiet, so the pulse gets deeper without the whole shot drifting bigger">Reactivity <span className="label-value">{fxPulseReactivity === 0 ? 'Off' : fxPulseReactivity >= 1 ? 'Max' : `${Math.round(fxPulseReactivity * 100)}%`}</span></label>
+              <input type="range" className="range-input" min={0} max={1} step={0.05} value={fxPulseReactivity} onChange={e => setFxPulseReactivity(parseFloat(e.target.value))} />
             </div>
             <div className="toggle-group">
               <label title="Off by default — this is the layer that reads as strobing">Add Flash</label>
@@ -852,7 +855,7 @@ export const App = () => {
             </div>
             <div className="control-group">
               <label>Leak Size <span className="label-value">{Math.round(fxLeakSize * 100)}%</span></label>
-              <input type="range" className="range-input" min={0.15} max={0.7} step={0.01} value={fxLeakSize} onChange={e => setFxLeakSize(parseFloat(e.target.value))} />
+              <input type="range" className="range-input" min={0.15} max={1.4} step={0.01} value={fxLeakSize} onChange={e => setFxLeakSize(parseFloat(e.target.value))} />
             </div>
             <div className="control-group">
               <label>Leak Color</label>
