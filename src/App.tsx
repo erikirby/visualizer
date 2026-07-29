@@ -285,6 +285,9 @@ export const App = () => {
   const [fxPulseReactivity, setFxPulseReactivity] = useState<number>(0.5);
   const [fxPulseLead, setFxPulseLead] = useState<number>(0);
   const [fxSpectrumType, setFxSpectrumType] = useState<"bass" | "wide">("bass");
+  // Defaults to 2: this track (and most 4-on-the-floor with offbeat bass) reads
+  // as double-time on every hit.
+  const [fxPulseDivision, setFxPulseDivision] = useState<number>(2);
   const [fxPulseFlash, setFxPulseFlash] = useState<boolean>(false);
   const [fxPulseFlashIntensity, setFxPulseFlashIntensity] = useState<number>(0.5);
 
@@ -687,6 +690,7 @@ export const App = () => {
     pulseIntensity: fxPulseIntensity,
     pulseReactivity: fxPulseReactivity,
     pulseLeadFrames: fxPulseLead,
+    pulseDivision: fxPulseDivision,
     spectrumType: fxSpectrumType,
     pulseFlash: fxPulseFlash,
     pulseFlashIntensity: fxPulseFlashIntensity,
@@ -831,6 +835,14 @@ export const App = () => {
               <div className="segmented-control">
                 <button className={fxSpectrumType === "bass" ? "active" : ""} onClick={() => setFxSpectrumType("bass")}>Bass</button>
                 <button className={fxSpectrumType === "wide" ? "active" : ""} onClick={() => setFxSpectrumType("wide")}>Wide</button>
+              </div>
+            </div>
+            <div className="control-group">
+              <label title="If the pulse feels double-time, the track has bass between the beats. Thin it to every 2nd or 4th hit.">Pulse Rate</label>
+              <div className="segmented-control">
+                <button className={fxPulseDivision === 1 ? "active" : ""} onClick={() => setFxPulseDivision(1)}>Every Hit</button>
+                <button className={fxPulseDivision === 2 ? "active" : ""} onClick={() => setFxPulseDivision(2)}>Every 2nd</button>
+                <button className={fxPulseDivision === 4 ? "active" : ""} onClick={() => setFxPulseDivision(4)}>Every 4th</button>
               </div>
             </div>
             <div className="control-group">

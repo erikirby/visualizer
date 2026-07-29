@@ -58,6 +58,80 @@ function buildBassPeak(
   return Math.max(...vals, 0.02);
 }
 
+/**
+ * Gate that thins the pulse down to every Nth bass hit.
+ *
+ * The pulse follows bass energy, so on a track with bass on the offbeats it
+ * fires twice per beat and reads as double-time. This finds the hits, keeps
+ * every Nth one, and returns a per-frame 0-1 multiplier that peaks on the kept
+ * hits and eases to zero between them. Raised-cosine so thinning the rate
+ * never reintroduces a hard edge.
+ *
+ * Returns null for division 1 (no thinning) so the normal path is untouched.
+ */
+function buildBeatGate(
+  audioData: ReturnType<typeof useAudioData>,
+  fps: number,
+  division: number,
+): Float32Array | null {
+  if (!audioData || division <= 1) return null;
+  const wave = audioData.channelWaveforms[0];
+  const { sampleRate } = audioData;
+  if (!wave?.length) return null;
+
+  const samplesPerFrame = sampleRate / fps;
+  const frameCount = Math.ceil(wave.length / samplesPerFrame);
+
+  // Per-frame bass RMS via a one-pole lowpass (~150Hz) — the kick band.
+  const rc = 1 / (2 * Math.PI * 150);
+  const a = (1 / sampleRate) / (rc + 1 / sampleRate);
+  const e = new Float32Array(frameCount);
+  let lp = 0;
+  let peak = 0;
+  for (let f = 0; f < frameCount; f++) {
+    const start = Math.floor(f * samplesPerFrame);
+    const end = Math.min(wave.length, Math.floor((f + 1) * samplesPerFrame));
+    let sum = 0;
+    let n = 0;
+    for (let i = start; i < end; i++) {
+      lp += a * (wave[i] - lp);
+      sum += lp * lp;
+      n++;
+    }
+    e[f] = n > 0 ? Math.sqrt(sum / n) : 0;
+    if (e[f] > peak) peak = e[f];
+  }
+  if (peak <= 0) return null;
+
+  const hits: number[] = [];
+  for (let f = 1; f < frameCount - 1; f++) {
+    const v = e[f] / peak;
+    if (v > 0.35 && e[f] >= e[f - 1] && e[f] >= e[f + 1] && (!hits.length || f - hits[hits.length - 1] >= 4)) {
+      hits.push(f);
+    }
+  }
+  if (hits.length < 4) return null;
+
+  const gaps = hits.slice(1).map((h, i) => h - hits[i]).sort((x, y) => x - y);
+  const medianGap = gaps[Math.floor(gaps.length / 2)] || 7;
+
+  const kept = hits.filter((_, i) => i % division === 0);
+  const halfWidth = Math.max(3, medianGap * division * 0.6);
+
+  const gate = new Float32Array(frameCount);
+  for (let f = 0; f < frameCount; f++) {
+    let nearest = Infinity;
+    for (const p of kept) {
+      const d = Math.abs(f - p);
+      if (d < nearest) nearest = d;
+      if (p > f + halfWidth) break;
+    }
+    const x = Math.min(1, nearest / halfWidth);
+    gate[f] = 0.5 * (1 + Math.cos(Math.PI * x));
+  }
+  return gate;
+}
+
 export interface EffectsPassProps {
   videoSrc?: string;
 
@@ -75,6 +149,8 @@ export interface EffectsPassProps {
   pulseReactivity?: number;     // 0–1 contrast curve, same as the Reactivity slider
   /** Frame offset for nudging the pulse when it drifts off the audio. */
   pulseLeadFrames?: number;
+  /** 1 = every bass hit, 2 = every 2nd, 4 = every 4th. Fixes double-time. */
+  pulseDivision?: number;
   spectrumType?: "bass" | "wide";
   pulseFlash?: boolean;         // optional luminance flash on top of the scale
   pulseFlashIntensity?: number; // 0–1
@@ -113,6 +189,7 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
   pulseIntensity = 1,
   pulseReactivity = 0,
   pulseLeadFrames = 0,
+  pulseDivision = 1,
   spectrumType = "bass",
   pulseFlash = false,
   pulseFlashIntensity = 0.5,
@@ -140,6 +217,10 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
   const bassPeak = React.useMemo(
     () => buildBassPeak(audioData, fps, spectrumType),
     [audioData, fps, spectrumType],
+  );
+  const beatGate = React.useMemo(
+    () => buildBeatGate(audioData, fps, pulseDivision),
+    [audioData, fps, pulseDivision],
   );
 
   // ── Beat analysis ──────────────────────────────────────────────────────────
@@ -180,11 +261,14 @@ export const EffectsPass: React.FC<EffectsPassProps> = ({
         ))
       : 0;
 
+    // Thin the rate down when the music puts bass between the beats.
+    const gate = beatGate ? (beatGate[Math.min(readFrame, beatGate.length - 1)] ?? 1) : 1;
+
     return {
-      pump: smoothBass,
-      kick: pulseFlash ? Math.min(1, Math.max(0, rawBass - smoothBass - 0.10) * 3) : 0,
+      pump: smoothBass * gate,
+      kick: pulseFlash ? Math.min(1, Math.max(0, rawBass - smoothBass - 0.10) * 3) * gate : 0,
     };
-  }, [audioData, frame, fps, pulseFlash, bassPeak, pulseLeadFrames, spectrumType]);
+  }, [audioData, frame, fps, pulseFlash, bassPeak, pulseLeadFrames, spectrumType, beatGate]);
 
   if (bypass) {
     return (
